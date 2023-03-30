@@ -1,7 +1,8 @@
 .vscode/
 *.tar.gz
 TensorRT-8.6.0.12/
-*.sh
 *.engine
 *.onnx
-**/build/
+**/build/*
+/mmtools/
+!**/build/*.so

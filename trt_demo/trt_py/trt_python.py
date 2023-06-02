@@ -1,6 +1,6 @@
 import tensorrt as trt
-import pycuda.autoinit
-import pycuda.driver as cuda
+# import pycuda.autoinit
+# import pycuda.driver as cuda
 import numpy as np
 from cuda import cudart
 

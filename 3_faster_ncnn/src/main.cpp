@@ -7,8 +7,8 @@
 using namespace std;
 
 void t2(){
-    string param_path = "/home/zzx/Github/zzx_yolo/yolox_infer/4_ncnn/model.param";
-    string model_path = "/home/zzx/Github/zzx_yolo/yolox_infer/4_ncnn/model.bin";
+    string param_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/model.bin";
+    string model_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/model.param";
 
     auto infer = NCNN_DET::create_infer(param_path, model_path, 0.5, 0.65); 
 
@@ -17,22 +17,22 @@ void t2(){
         return ;
     }
     
-    string img_path = "/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg";
+    string img_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/img/000026.jpg";
     cv::Mat img = cv::imread(img_path);
 
     queue<std::shared_future<std::vector<NCNN_DET::ObjBox>>> out_queue;
 
     auto start = std::chrono::system_clock::now();
     for(int i=0;i<100;i++){
-        // img_queue.push(img);
+
         // auto start = std::chrono::system_clock::now();
-        auto fut = infer->commit(img);     // 将任务提交给推理器（推理器执行commit)
+        auto fut = infer->commit(img);     // 任务提交
         // auto end = std::chrono::system_clock::now();
         // cout << chrono::duration_cast<chrono::milliseconds>(end - start).count()<< "ms" << endl;
 
         out_queue.push(fut);
 
-        if(out_queue.size() <= 30){
+        if(out_queue.size() <= 2){
             continue;
         }
         auto res = out_queue.front().get();

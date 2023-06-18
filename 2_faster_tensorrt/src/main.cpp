@@ -236,17 +236,167 @@ void only_trt_test(){
     cv::imwrite(cv::format("infer_%s.jpg", YOLO::trt_version()), image);
 }
 
-static void zzx_test(YOLO::YoloType type, YOLO::Mode mode, const string& model_name){
+void zzx_v1_test_batch_1_img(){
+    int batch_size = 1;
 
     int deviceid = 0;
-    auto mode_name = YOLO::mode_string(mode);
     YOLO::set_device(deviceid);
+    printf("===================== zzx_test_batch_1_img ==================================\n");
+    
+    auto type = YOLO::YoloType::X;
+    const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
+    // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
+    
+    float confidence_threshold = 0.5f;
+    float nms_threshold = 0.65f;
+    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
+    if(yolo == nullptr){
+        printf("Yolo is nullptr\n");
+        return;
+    }
 
-    printf("===================== test %s %s %s ==================================\n", YOLO::type_name(type), mode_name);
+    auto image = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    
+    // warmup
+    shared_future<YOLO::BoxArray> boxes_array;
+    for(int i = 0; i < 100; ++i){
+        boxes_array = yolo->commit(image);
+        boxes_array.get();
+    }
+
+
+    queue<shared_future<YOLO::BoxArray>> out_queue;
+
+    int ntest = 1000;
+    auto begin_timer = timestamp_now_float();
+    for(int i=0;i<ntest;i++){
+        // auto objs = yolo->commit(image);
+        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+        auto objs = yolo->commit(image_now);
+        out_queue.emplace(objs);
+
+        if(out_queue.size() < 2){
+            continue;
+        }
+        // 虽然看起来快了 但是相比于真实时间其实是需要分情况的，计算公式是下面
+        // 可以看到如果模型比较大的时候这个方法才会受益
+        // ori: T + infer_time
+        // zzx: T + (n-1)T
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+    while(!out_queue.empty()){
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+
+
+    float inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+    
+    begin_timer = timestamp_now_float();
+    for(int i=0;i<ntest;i++){
+        // auto objs = yolo->commit(image);
+        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+        auto objs = yolo->commit(image_now).get();
+    }
+
+    inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[ori] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+    
+
+    begin_timer = timestamp_now_float();
+    for(int i=0;i<ntest;i++){
+        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    }
+
+    inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[img] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
     
     
-    inference_and_performance(deviceid, model_name, mode, type);
 }
+
+
+void zzx_v1_test_batch_1_video(){
+    int batch_size = 1;
+
+    int deviceid = 0;
+    YOLO::set_device(deviceid);
+    printf("===================== zzx_v1_test_batch_1_video ==================================\n");
+    
+    auto type = YOLO::YoloType::X;
+    const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
+    // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
+    
+    float confidence_threshold = 0.5f;
+    float nms_threshold = 0.65f;
+    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
+    if(yolo == nullptr){
+        printf("Yolo is nullptr\n");
+        return;
+    }
+
+    auto image = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    
+    // warmup
+    shared_future<YOLO::BoxArray> boxes_array;
+    for(int i = 0; i < 100; ++i){
+        boxes_array = yolo->commit(image);
+        boxes_array.get();
+    }
+
+    const string video_file = "/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/inference/2019-02-20_19-01-02to2019-02-20_19-01-13_1.avi";
+    auto cap = cv::VideoCapture(video_file);
+    cv::Mat frame;
+    int frame_count = 0;
+    int ntest = 1000;
+
+    queue<shared_future<YOLO::BoxArray>> out_queue;
+
+    auto begin_timer = timestamp_now_float();
+    while (cap.isOpened()) {
+        if(frame_count > ntest) break;
+        frame_count++;
+        cap >> frame;
+
+        auto objs = yolo->commit(frame);
+        out_queue.emplace(objs);
+
+        if(out_queue.size() < 2){
+            continue;
+        }
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+    while(!out_queue.empty()){
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+
+    float inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+ 
+
+    cap = cv::VideoCapture(video_file);
+    frame_count = 0;
+    ntest = 1000;
+
+    begin_timer = timestamp_now_float();
+    while (cap.isOpened()) {
+        if(frame_count > ntest) break;
+        frame_count++;
+        cap >> frame;
+
+        auto objs = yolo->commit(frame).get();
+    }
+
+    inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[ori] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+ 
+
+}
+
+
 
 void zzx_test_video(){
     printf("TRTVersion: %s\n", YOLO::trt_version());
@@ -307,7 +457,20 @@ void zzx_test_video(){
 }
 
 int main(){
-    zzx_test_video();
+    // zzx_v1_test_batch_1_img();
+/*
+[zzx] average: 7.15 ms / image, FPS: 139.79
+[ori] average: 9.54 ms / image, FPS: 104.83
+[img] average: 6.60 ms / image, FPS: 151.45
+*/
+    zzx_v1_test_batch_1_video();
+
+
+
+
+
+
+    // zzx_test_video();
     // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
     // const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
     // zzx_test(YOLO::YoloType::X, YOLO::Mode::FP16, model_file);

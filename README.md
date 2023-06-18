@@ -3,10 +3,12 @@
 本仓库主要是深度学习模型的TensorRT和ncnn部署，有较好的接口便捷性和推理延迟。均以目标检测部署为例。
 > 另外需要说明的是，不同于其他benchmark，本项目因为主要适用于机器人，所以在测试是一般设置`batch=1`，采用一张接着一张图片输入或者视频输入的方式进行测试，模拟单目机器人的实际情况。
 
-- trt_learn: 主要是tensorrt的基础操作，模型转换 推理 插件等
+- 1_trt_learn: 主要是tensorrt的基础操作，模型转换 推理 插件等 以及一些运行的demo
+- 2_faster_tensorrt: 主要是tensorrt的封装和优化
+- 3_faster_ncnn: 参考`2_faster_tensorr`封装ncnn
 
 ## 致谢
-感谢手写ai团队开源的[TensorRT_Pro](https://github.com/shouxieai/tensorRT_Pro)，让我受益良多，本仓库中tensorrt的代码也均是在其基础上面进行小部分优化，以及按照该仓库的整体思路优化ncnn的推理。该仓库的部分优点：
+首先需要感谢手写ai团队开源的[TensorRT_Pro](https://github.com/shouxieai/tensorRT_Pro)，让我受益良多，本仓库中tensorrt的代码也均是在其基础上面进行小部分优化，以及按照该仓库的整体思路优化ncnn的推理。该仓库的部分优点：
 1. 接口简单清晰
 2. 预处理和后处理自写CUDA加速
 3. batch可根据实际数据动态调整(前提是trtmodel转换中设置动态batch)

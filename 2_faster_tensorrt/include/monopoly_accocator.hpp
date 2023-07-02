@@ -6,28 +6,19 @@
 #include <mutex>
 #include <memory>
 
-
+namespace YOLO{
 ///////////////////////////class MonopolyAllocator//////////////////////////////////////
 /* 独占分配器
-    通过对tensor做独占管理，具有max_batch * 2个tensor，通过query获取一个
+    通过对tensor做独占管理，具有max_batch * 2个tensor，通过query获取一个tensor
     当推理结束后，该tensor释放使用权，即可交给下一个图像使用，内存实现复用
-*/
-/**
- * 独占分配器
- * 用以解决以下问题：
+
  * 1. 实现tensor复用的问题
- * 2. 对于tensor使用的两个阶段实现并行，时间重叠
- *    阶段一：预处理准备
- *    阶段二：模型推理
+ * 2. 实现tensor的预处理和推理两个阶段并行
  * 
- * 在实际工作中，通常图像输入过程有预处理、推理
- * 我们的目的是让预处理和推理时间进行重叠。因此设计了一个缓冲区，类似厅外等候区的那种形式
- * 当我们输入图像时，具有2倍batch的空间进行预处理用于缓存
- * 而引擎推理时，每次拿1个batch的数据进行推理
- * 当引擎推理速度慢而预处理速度快时，输入图像势必需要进行等候。否则缓存队列会越来越大
- * 而这里提到的几个点就是设计的主要目标
+ * 输入图像时，具有2倍batch的空间进行预处理用于缓存
+ * 引擎推理时，每次拿1个batch的数据进行推理
+ * 当引擎推理速度慢而预处理速度快时，输入图像势需要进行等候。
  **/
-namespace YOLO{
     template<class _ItemType>
     class MonopolyAllocator{
     public:
@@ -51,6 +42,7 @@ namespace YOLO{
         };
         typedef std::shared_ptr<MonopolyData> MonopolyDataPointer;
 
+        // 构造函数 初始化尺寸
         MonopolyAllocator(int size){
             capacity_ = size;
             num_available_ = size;
@@ -60,6 +52,7 @@ namespace YOLO{
                 datas_[i] = std::shared_ptr<MonopolyData>(new MonopolyData(this));
         }
 
+        // 析构 
         virtual ~MonopolyAllocator(){
             run_ = false;
             cv_.notify_all();
@@ -74,7 +67,6 @@ namespace YOLO{
         请求得到一个对象后，该对象被占用，除非他执行了release释放该对象所有权
         */
         MonopolyDataPointer query(int timeout = 10000){
-
             std::unique_lock<std::mutex> l(lock_);
             if(!run_) return nullptr;
             
@@ -102,15 +94,18 @@ namespace YOLO{
             return *item;
         }
 
+        // 有效数量
         int num_available(){
             return num_available_;
         }
 
+        // 空间大小
         int capacity(){
             return capacity_;
         }
 
     private:
+        // 释放一个对象的所有权
         void release_one(MonopolyData* prq){
             std::unique_lock<std::mutex> l(lock_);
             if(!prq->available_){
@@ -131,5 +126,10 @@ namespace YOLO{
         volatile bool run_ = true;
     };
 
+
+
 };
+
+
+
 #endif

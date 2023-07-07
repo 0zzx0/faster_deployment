@@ -30,9 +30,8 @@ const char* data_head_string(DataHead dh);
 const char* data_type_string(DataType dt);
 
 /* MixMemory: gpu/cpu内存管理
-    自动对gpu和cpu内存进行分配和释放
-    这里的cpu使用的是pinned memory，当对gpu做内存复制时，性能比较好
-    因为是cudaMallocHost分配的，因此他与cuda context有关联
+    实现对gpu和cpu内存进行分配和释放
+    cpu使用的是pinned memory，当对gpu做内存复制时，性能比较好
 */
 class MixMemory {
 public:

@@ -5,15 +5,16 @@
 
 namespace YOLO{
 
+// fp16转fp32
 float float16_to_float(float16 value){
     return __half2float(*reinterpret_cast<__half*>(&value));
 }
-
+// fp32转fp16
 float16 float_to_float16(float value){
     auto val = __float2half(value);
     return *reinterpret_cast<float16*>(&val);
 }
-
+// 返回数据类型的字节数
 int data_type_size(DataType dt){
     switch (dt) {
         case DataType::Float: return sizeof(float);
@@ -26,7 +27,7 @@ int data_type_size(DataType dt){
         }
     }
 }
-
+// 返回数据类型的名字
 const char* data_type_string(DataType dt){
     switch(dt){
         case DataType::Float: return "Float32";
@@ -36,7 +37,7 @@ const char* data_type_string(DataType dt){
         default: return "Unknow";
     }
 }
-
+// 返回数据的状态位置
 const char* data_head_string(DataHead dh){
     switch(dh){
         case DataHead::Init: return "Init";
@@ -49,12 +50,15 @@ const char* data_head_string(DataHead dh){
 //////////////////////////////////////////////////////////////////////
 //////////////////////////// MixMemory ///////////////////////////////
 //////////////////////////////////////////////////////////////////////
+// 构造函数一 指定设备id
 MixMemory::MixMemory(int device_id){
     device_id_ = get_device(device_id);
 }
+// 构造函数二 指定cpu gpu尺寸和数据
 MixMemory::MixMemory(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size){
     reference_data(cpu, cpu_size, gpu, gpu_size);		
 }
+// 析构
 MixMemory::~MixMemory() {
     release_all();
 }
@@ -98,7 +102,6 @@ void* MixMemory::gpu(size_t size) {
 
 // 设置cpu内存大小
 void* MixMemory::cpu(size_t size) {
-
     if (cpu_size_ < size) {
         release_cpu();
 

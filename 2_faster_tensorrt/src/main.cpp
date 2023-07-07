@@ -60,6 +60,25 @@ static double timestamp_now_float() {
     return chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count() / 1000.0;
 }
 
+static void draw_save(cv::Mat image, YOLO::BoxArray objs){
+    for(auto& obj : objs){
+        // cout << obj.bottom <<" "<< obj.top <<" "<<obj.left<<" "<<obj.right << " " << obj.confidence <<endl;
+        uint8_t b, g, r;
+        tie(b, g, r) = random_color(obj.class_label);
+        cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom), cv::Scalar(b, g, r), 5);
+
+        auto name    = cocolabels[obj.class_label];
+        auto caption = cv::format("%s %.2f", name, obj.confidence);
+        cout << caption << ": " << obj.bottom <<" "<< obj.top <<" "<<obj.left<<" "<<obj.right << endl;
+        int width    = cv::getTextSize(caption, 0, 1, 2, nullptr).width + 10;
+        cv::rectangle(image, cv::Point(obj.left-3, obj.top-33), cv::Point(obj.left + width, obj.top), cv::Scalar(b, g, r), -1);
+        cv::putText(image, caption, cv::Point(obj.left, obj.top-5), 0, 1, cv::Scalar::all(0), 2, 16);
+    }
+
+    printf("Save result to infer.jpg, %d objects\n", objs.size());
+    cv::imwrite(cv::format("infer_%s.jpg", YOLO::trt_version()), image);
+}
+
 static void inference_and_performance(int deviceid, const string& engine_file, YOLO::Mode mode, YOLO::YoloType type){
 
     int batch_size = 16;
@@ -154,87 +173,7 @@ static void test(YOLO::YoloType type, YOLO::Mode mode, const string& model_name,
     inference_and_performance(deviceid, model_file, mode, type);
 }
 
-void direct_test(){
 
-    printf("TRTVersion: %s\n", YOLO::trt_version());
-    
-    int device_id = 0;
-    string model = "yolox_s_dynamic";
-    auto type = YOLO::YoloType::X;
-    auto mode = YOLO::Mode::FP32;
-    string onnx_file = cv::format("%s.onnx", model.c_str());
-    string model_file = cv::format("%s.%s.trtmodel", model.c_str(), YOLO::mode_string(mode));
-    YOLO::set_device(device_id);
-    
-    if(!exists(model_file) && !YOLO::compile(mode, type, 6, onnx_file, model_file, 1<<30, "inference")){
-        printf("Compile failed\n");
-        return;
-    }
-
-    float confidence_threshold = 0.4f;
-    float nms_threshold = 0.5f;
-    auto yolo = YOLO::create_infer(model_file, type, device_id, confidence_threshold, nms_threshold);
-    if(yolo == nullptr){
-        printf("Yolo is nullptr\n");
-        return;
-    }
-
-    auto image = cv::imread("/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg");
-    auto objs = yolo->commit(image).get();
-    for(auto& obj : objs){
-        uint8_t b, g, r;
-        tie(b, g, r) = random_color(obj.class_label);
-        cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom), cv::Scalar(b, g, r), 5);
-
-        auto name    = cocolabels[obj.class_label];
-        auto caption = cv::format("%s %.2f", name, obj.confidence);
-        int width    = cv::getTextSize(caption, 0, 1, 2, nullptr).width + 10;
-        cv::rectangle(image, cv::Point(obj.left-3, obj.top-33), cv::Point(obj.left + width, obj.top), cv::Scalar(b, g, r), -1);
-        cv::putText(image, caption, cv::Point(obj.left, obj.top-5), 0, 1, cv::Scalar::all(0), 2, 16);
-    }
-
-    printf("Save result to infer.jpg, %d objects\n", objs.size());
-    cv::imwrite(cv::format("infer_%s.jpg", YOLO::trt_version()), image);
-}
-
-void only_trt_test(){
-
-    printf("TRTVersion: %s\n", YOLO::trt_version());
-    
-    int device_id = 0;
-    YOLO::set_device(device_id);
-    auto type = YOLO::YoloType::X;
-    const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
-    // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
-    
-    
-    float confidence_threshold = 0.3f;
-    float nms_threshold = 0.45f;
-    auto yolo = YOLO::create_infer(model_file, type, device_id, 16, confidence_threshold, nms_threshold);
-    if(yolo == nullptr){
-        printf("Yolo is nullptr\n");
-        return;
-    }
-
-    auto image = cv::imread("/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg");
-    auto objs = yolo->commit(image).get();
-    for(auto& obj : objs){
-        // cout << obj.bottom <<" "<< obj.top <<" "<<obj.left<<" "<<obj.right << " " << obj.confidence <<endl;
-        uint8_t b, g, r;
-        tie(b, g, r) = random_color(obj.class_label);
-        cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom), cv::Scalar(b, g, r), 5);
-
-        auto name    = cocolabels[obj.class_label];
-        auto caption = cv::format("%s %.2f", name, obj.confidence);
-        cout << caption << ": " << obj.bottom <<" "<< obj.top <<" "<<obj.left<<" "<<obj.right << endl;
-        int width    = cv::getTextSize(caption, 0, 1, 2, nullptr).width + 10;
-        cv::rectangle(image, cv::Point(obj.left-3, obj.top-33), cv::Point(obj.left + width, obj.top), cv::Scalar(b, g, r), -1);
-        cv::putText(image, caption, cv::Point(obj.left, obj.top-5), 0, 1, cv::Scalar::all(0), 2, 16);
-    }
-
-    printf("Save result to infer.jpg, %d objects\n", objs.size());
-    cv::imwrite(cv::format("infer_%s.jpg", YOLO::trt_version()), image);
-}
 
 void zzx_v1_test_batch_1_img(){
     int batch_size = 1;
@@ -268,11 +207,15 @@ void zzx_v1_test_batch_1_img(){
     queue<shared_future<YOLO::BoxArray>> out_queue;
 
     int ntest = 1000;
+    auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
     auto begin_timer = timestamp_now_float();
     for(int i=0;i<ntest;i++){
         // auto objs = yolo->commit(image);
-        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+        
+        // auto begin_timer_1 = timestamp_now_float();
         auto objs = yolo->commit(image_now);
+        // float inference_average_time_1 = (timestamp_now_float() - begin_timer_1);
+        // printf("[zzx] commit: %.2f ms\n", inference_average_time_1);
         out_queue.emplace(objs);
 
         if(out_queue.size() < 2){
@@ -297,24 +240,98 @@ void zzx_v1_test_batch_1_img(){
     begin_timer = timestamp_now_float();
     for(int i=0;i<ntest;i++){
         // auto objs = yolo->commit(image);
-        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+        // auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
         auto objs = yolo->commit(image_now).get();
     }
 
     inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
     printf("[ori] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
-    
 
-    begin_timer = timestamp_now_float();
-    for(int i=0;i<ntest;i++){
-        auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
-    }
 
-    inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
-    printf("[img] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+    // begin_timer = timestamp_now_float();
+    // for(int i=0;i<ntest;i++){
+    //     auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    // }
+
+    // inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    // printf("[img] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
     
     
 }
+
+
+static queue<shared_future<YOLO::BoxArray>> all_out_queue_;
+static bool stop_=false;
+static mutex all_mu_;
+void zzx_v1_test_batch_1_img_thread_work(){
+    while(!stop_ || all_out_queue_.empty()){
+        if(!all_out_queue_.empty()){
+            std::shared_future<YOLO::BoxArray> res;
+            {
+                unique_lock<mutex> l(all_mu_);
+                res = all_out_queue_.front();
+                all_out_queue_.pop();
+            }
+            auto ans = res.get();
+        }
+    }
+    return ;
+}
+
+
+void zzx_v1_test_batch_1_img_thread(){
+    int batch_size = 1;
+
+    int deviceid = 0;
+    YOLO::set_device(deviceid);
+    printf("===================== zzx_test_batch_1_img ==================================\n");
+    
+    auto type = YOLO::YoloType::X;
+    const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
+    // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
+    
+    float confidence_threshold = 0.5f;
+    float nms_threshold = 0.5f;
+    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
+    if(yolo == nullptr){
+        printf("Yolo is nullptr\n");
+        return;
+    }
+
+    auto image = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    
+    // warmup
+    shared_future<YOLO::BoxArray> boxes_array;
+    for(int i = 0; i < 100; ++i){
+        boxes_array = yolo->commit(image);
+        boxes_array.get();
+    }
+
+
+    int ntest = 1000;
+    auto image_now = cv::imread("/home/zzx/Github/faster_deployment/2_faster_tensorrt/inference/000026.jpg");
+    
+    auto begin_timer = timestamp_now_float();
+    thread mywork(zzx_v1_test_batch_1_img_thread_work);
+    for(int i=0;i<ntest;i++){
+        auto objs = yolo->commit(image_now);
+        {
+            unique_lock<mutex> l(all_mu_);
+            all_out_queue_.emplace(objs);
+        }
+    }
+    {
+        unique_lock<mutex> l(all_mu_);
+        stop_ = true;
+    }
+    mywork.join();
+
+    float inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
+    printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+    
+    
+}
+
 
 
 void zzx_v1_test_batch_1_video(){
@@ -375,7 +392,7 @@ void zzx_v1_test_batch_1_video(){
 
     float inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
     printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
- 
+    cap.release();
 
     cap = cv::VideoCapture(video_file);
     frame_count = 0;
@@ -392,10 +409,9 @@ void zzx_v1_test_batch_1_video(){
 
     inference_average_time = (timestamp_now_float() - begin_timer) / ntest;
     printf("[ori] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
- 
+    cap.release();
 
 }
-
 
 
 void zzx_test_video(){
@@ -457,13 +473,14 @@ void zzx_test_video(){
 }
 
 int main(){
-    // zzx_v1_test_batch_1_img();
+    zzx_v1_test_batch_1_img();
+    // zzx_v1_test_batch_1_img_thread();
 /*
 [zzx] average: 7.15 ms / image, FPS: 139.79
 [ori] average: 9.54 ms / image, FPS: 104.83
 [img] average: 6.60 ms / image, FPS: 151.45
 */
-    zzx_v1_test_batch_1_video();
+    // zzx_v1_test_batch_1_video();
 
 
 

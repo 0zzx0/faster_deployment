@@ -34,9 +34,28 @@ target_link_libraries(plugin_list cuda cublas cudart cudnn)
 target_link_libraries(plugin_list pthread)
 target_link_libraries(plugin_list ${OpenCV_LIBS})
 
-add_executable(yolo ${cpp_srcs})
+add_executable(yolo 
+    ${PROJECT_SOURCE_DIR}/src/main.cpp
+    ${PROJECT_SOURCE_DIR}/src/infer_base.cpp
+    ${PROJECT_SOURCE_DIR}/src/memory_tensor.cpp
+    ${PROJECT_SOURCE_DIR}/src/yolo.cpp
+)
 target_link_libraries(yolo plugin_list)
 target_link_libraries(yolo nvinfer nvinfer_plugin nvonnxparser)
 target_link_libraries(yolo cuda cublas cudart cudnn)
 target_link_libraries(yolo pthread)
 target_link_libraries(yolo ${OpenCV_LIBS})
+
+
+add_executable(eval 
+    ${PROJECT_SOURCE_DIR}/src/eval/eval.cpp
+    ${PROJECT_SOURCE_DIR}/src/eval/save.hpp
+    ${PROJECT_SOURCE_DIR}/src/infer_base.cpp
+    ${PROJECT_SOURCE_DIR}/src/memory_tensor.cpp
+    ${PROJECT_SOURCE_DIR}/src/yolo.cpp
+    )
+target_link_libraries(eval plugin_list)
+target_link_libraries(eval nvinfer nvinfer_plugin nvonnxparser)
+target_link_libraries(eval cuda cublas cudart cudnn)
+target_link_libraries(eval pthread)
+target_link_libraries(eval ${OpenCV_LIBS})

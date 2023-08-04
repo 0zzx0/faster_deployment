@@ -1,8 +1,13 @@
 .vscode/
+
+**/build/*
+/mmtools/
+
+
+!/trt_demo/files/*
+
+
 *.tar.gz
 *.engine
 *.onnx
-**/build/*
-/mmtools/
 !**/build/*.so
-!/trt_demo/files/*

@@ -1,0 +1,3 @@
+[submodule "4_faster_rknn"]
+	path = 4_faster_rknn
+	url = https://github.com/0zzx0/zzx_rknn.git

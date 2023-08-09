@@ -33,6 +33,7 @@
 > 本文中两个词的意义 :   <br>
 > **延迟**：图片从诞生到推理完成需要的时间。 <br>
 > **吞吐**：相等时间内处理图片的数量。 <br>
+> 发现一个更好的解释，来自trt的文档[性能评估](https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#measure-performance)
 
 
 我们的目标肯定是吞吐量特别大，同时延迟超级小，在一定条件下，其实这两个是有互斥的意思的。但是另一方面，其实这也是表明程序性能两种方式，吞吐量代表并行能力，延迟代表串行效果。

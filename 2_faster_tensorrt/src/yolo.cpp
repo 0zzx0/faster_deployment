@@ -149,17 +149,16 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
     // 这里的 1 + MAX_IMAGE_BBOX结构是，counter + bboxes ...
     output_array_device.resize(max_batch_size, 1 + MAX_IMAGE_BBOX * NUM_BOX_ELEMENT).to_gpu();
 
-    
-    if(type_ == YoloType::V5){
-        prior_box.resize(output->size(1) * output->size(3), 5).to_cpu();
-        init_yolov5_prior_box(prior_box);
-    } else if(type_ == YoloType::X){
+    auto decode_kernel_invoker = yolox_decode_kernel_invoker;
+
+    if(type_ == YoloType::X){
         prior_box.resize(output->size(0) * output->size(1), 3).to_cpu();
         init_yolox_prior_box(prior_box);
+        decode_kernel_invoker = yolox_decode_kernel_invoker;
     } else{
-        INFOE("now support yolox and yolov5! ");
+        INFOE("now support yolox only! ");
     }
-    auto decode_kernel_invoker = (type_ == YoloType::V5)?yolov5_decode_kernel_invoker:yolox_decode_kernel_invoker;
+    
 
     vector<Job> fetch_jobs;
     while(get_jobs_and_wait(fetch_jobs, max_batch_size)){
@@ -321,10 +320,9 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     //     normalize_, stream_
     // );
     warp_affine_bilinear_and_normalize_plane(
-        image_device,         image.cols * 3,       image.cols,       image.rows, 
+        image_device,         image.cols * 3,       image.cols,         image.rows, 
         tensor->gpu<float>(), input_width_,         input_height_, 
-        affine_matrix_device, 114, 
-        normalize_, stream_
+        affine_matrix_device, 114,                  normalize_,         stream_
     );
 
     return true;

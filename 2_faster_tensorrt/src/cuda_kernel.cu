@@ -17,20 +17,10 @@ static dim3 block_dims(int numJobs) {
     return numJobs < GPU_BLOCK_THREADS ? numJobs : GPU_BLOCK_THREADS;
 }
 
-// 仿射变换
-// static __device__ inline void affine_project(float* matrix, float x, float y, float* ox, float* oy){
-//     *ox = matrix[0] * x + matrix[1];
-//     *oy = matrix[0] * y + matrix[2];
-// }
-static __device__ inline void affine_project(float* matrix, float x, float y, float* ox, float* oy){
-    *ox = matrix[0] * x + matrix[1] * y + matrix[2];
-    *oy = matrix[3] * x + matrix[4] * y + matrix[5];
-}
-
 ///////////////////////////////////////////////////////////////////////
 //////////////////////////// Norm ////////////////////////////////////
-/////////////////////////////////////////////////////////////////////// 
-
+///////////////////////////////////////////////////////////////////////
+// 均值方差归一化 
 Norm Norm::mean_std(const float mean[3], const float std[3], float alpha, ChannelType channel_type){
 
     Norm out;
@@ -55,6 +45,16 @@ Norm Norm::alpha_beta(float alpha, float beta, ChannelType channel_type){
 Norm Norm::None(){
     return Norm();
 }	
+
+// 仿射变换
+// static __device__ inline void affine_project(float* matrix, float x, float y, float* ox, float* oy){
+//     *ox = matrix[0] * x + matrix[1];
+//     *oy = matrix[0] * y + matrix[2];
+// }
+static __device__ inline void affine_project(float* matrix, float x, float y, float* ox, float* oy){
+    *ox = matrix[0] * x + matrix[1] * y + matrix[2];
+    *oy = matrix[3] * x + matrix[4] * y + matrix[5];
+}
 
 
 // 计算iou
@@ -212,120 +212,11 @@ void yolox_decode_kernel_invoker(
     checkCudaKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, max_objects, nms_threshold));
 }
 
-
-// yoloc5 decode 肯定有错 还没调试
-static __global__ void decode_kernel(
-    float* predict, 
-    int num_bboxes, 
-    int fm_area,
-    int num_classes, 
-    float confidence_threshold,
-    float* invert_affine_matrix, 
-    float* parray, 
-    const float* prior_box,
-    int max_objects
-){  
-    int position = blockDim.x * blockIdx.x + threadIdx.x;
-    if (position >= num_bboxes) return;
-
-    // prior_box is 25200(axhxw) x 5
-    // predict is 3 x 85 x 8400
-    int anchor_index = position / fm_area;
-    int fm_index     = position % fm_area;
-    float* pitem     = predict + (anchor_index * (num_classes + 5) + 0) * fm_area + fm_index;
-    float objectness = pitem[fm_area * 4];
-    if(objectness < confidence_threshold)
-        return;
-
-    float confidence        = pitem[fm_area * 5];
-    int label               = 0;
-    for(int i = 1; i < num_classes; ++i){
-        float class_confidence = pitem[fm_area * (i + 5)];
-        if(class_confidence > confidence){
-            confidence = class_confidence;
-            label      = i;
-        } 
-    }
-
-    confidence = sigmoid(confidence);
-    objectness = sigmoid(objectness);
-    confidence *= objectness;
-    if(confidence < confidence_threshold)
-        return;
-
-    int index = atomicAdd(parray, 1);
-    if(index >= max_objects)
-        return;
-
-    float predict_cx = sigmoid(pitem[fm_area * 0]);
-    float predict_cy = sigmoid(pitem[fm_area * 1]);
-    float predict_w  = sigmoid(pitem[fm_area * 2]);
-    float predict_h  = sigmoid(pitem[fm_area * 3]);
-
-    const float* prior_ptr = prior_box + position * 5;
-    float stride     = prior_ptr[4];
-    float cx         = (predict_cx * 2 - 0.5f + prior_ptr[0]) * stride;
-    float cy         = (predict_cy * 2 - 0.5f + prior_ptr[1]) * stride;
-    float width      = pow(predict_w * 2, 2.0f) * prior_ptr[2];
-    float height     = pow(predict_h * 2, 2.0f) * prior_ptr[3];
-    float left   = cx - width * 0.5f;
-    float top    = cy - height * 0.5f;
-    float right  = cx + width * 0.5f;
-    float bottom = cy + height * 0.5f;
-    affine_project(invert_affine_matrix, left,  top,    &left,  &top);
-    affine_project(invert_affine_matrix, right, bottom, &right, &bottom);
-
-    float* pout_item = parray + 1 + index * NUM_BOX_ELEMENT;
-    *pout_item++ = left;
-    *pout_item++ = top;
-    *pout_item++ = right;
-    *pout_item++ = bottom;
-    *pout_item++ = confidence;
-    *pout_item++ = label;
-    *pout_item++ = 1; // 1 = keep, 0 = ignore
-}
-
-// yoloc5 后处理 肯定不匹配 还没调试
-void yolov5_decode_kernel_invoker(
-    float* predict, 
-    int num_bboxes, 
-    int fm_area,
-    int num_classes, 
-    float confidence_threshold, 
-    float nms_threshold, 
-    float* invert_affine_matrix, 
-    float* parray, 
-    const float* prior_box,
-    int max_objects, 
-    cudaStream_t stream
-){
-    auto grid = grid_dims(num_bboxes);
-    auto block = block_dims(num_bboxes);
-    checkCudaKernel(decode_kernel<<<grid, block, 0, stream>>>(
-        predict, 
-        num_bboxes, 
-        fm_area,
-        num_classes, 
-        confidence_threshold,
-        invert_affine_matrix, 
-        parray, 
-        prior_box,
-        max_objects
-    ));
-
-    grid = grid_dims(max_objects);
-    block = block_dims(max_objects);
-    checkCudaKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, max_objects, nms_threshold));
-}
-
-
 // same to opencv
 // reference: https://github.com/opencv/opencv/blob/24fcb7f8131f707717a9f1871b17d95e7cf519ee/modules/imgproc/src/resize.cpp
 // reference: https://github.com/openppl-public/ppl.cv/blob/04ef4ca48262601b99f1bb918dcd005311f331da/src/ppl/cv/cuda/resize.cu
 
-/*
-    可以考虑用同样实现的resize函数进行训练，python代码在：tools/test_resize.py
-*/
+
 __global__ void resize_bilinear_and_normalize_kernel(
     uint8_t* src, int src_line_size, int src_width, int src_height, 
     float* dst, int dst_width, int dst_height, 
@@ -409,9 +300,10 @@ void resize_bilinear_and_normalize(
 static __global__ void warp_affine_bilinear_and_normalize_plane_kernel(uint8_t* src, int src_line_size, int src_width, int src_height, float* dst, int dst_width, int dst_height, 
     uint8_t const_value_st, float* warp_affine_matrix_2_3, Norm norm, int edge){
 
-    int position = blockDim.x * blockIdx.x + threadIdx.x;
+    int position = blockDim.x * blockIdx.x + threadIdx.x;   // 每个thread处理当前位置三通道像素点
     if (position >= edge) return;
 
+    // TODO: 考虑shared memory
     float m_x1 = warp_affine_matrix_2_3[0];
     float m_y1 = warp_affine_matrix_2_3[1];
     float m_z1 = warp_affine_matrix_2_3[2];
@@ -419,18 +311,19 @@ static __global__ void warp_affine_bilinear_and_normalize_plane_kernel(uint8_t* 
     float m_y2 = warp_affine_matrix_2_3[4];
     float m_z2 = warp_affine_matrix_2_3[5];
 
-    int dx      = position % dst_width;
-    int dy      = position / dst_width;
-    float src_x = m_x1 * dx + m_y1 * dy + m_z1;
-    float src_y = m_x2 * dx + m_y2 * dy + m_z2;
+    int dx      = position % dst_width;     // 计算目标图像的x坐标
+    int dy      = position / dst_width;     // 计算目标图像的y坐标
+    float src_x = m_x1 * dx + m_y1 * dy + m_z1; // 根据仿射变换计算目标图像对应原图上的坐标
+    float src_y = m_x2 * dx + m_y2 * dy + m_z2; //
     float c0, c1, c2;
 
     if(src_x <= -1 || src_x >= src_width || src_y <= -1 || src_y >= src_height){
-        // out of range
+        // 越界使用padding值
         c0 = const_value_st;
         c1 = const_value_st;
         c2 = const_value_st;
     }else{
+        // 计算双线性插值的像素点
         int y_low = floorf(src_y);
         int x_low = floorf(src_x);
         int y_high = y_low + 1;
@@ -442,10 +335,12 @@ static __global__ void warp_affine_bilinear_and_normalize_plane_kernel(uint8_t* 
         float hy    = 1 - ly;
         float hx    = 1 - lx;
         float w1    = hy * hx, w2 = hy * lx, w3 = ly * hx, w4 = ly * lx;
+        // 获取周围的像素的值
         uint8_t* v1 = const_value;
         uint8_t* v2 = const_value;
         uint8_t* v3 = const_value;
         uint8_t* v4 = const_value;
+        // 避免越界
         if(y_low >= 0){
             if (x_low >= 0)
                 v1 = src + y_low * src_line_size + x_low * 3;
@@ -463,6 +358,7 @@ static __global__ void warp_affine_bilinear_and_normalize_plane_kernel(uint8_t* 
         }
 
         // same to opencv
+        // 根据插值权重和周围像素的值计算新的像素值
         c0 = floorf(w1 * v1[0] + w2 * v2[0] + w3 * v3[0] + w4 * v4[0] + 0.5f);
         c1 = floorf(w1 * v1[1] + w2 * v2[1] + w3 * v3[1] + w4 * v4[1] + 0.5f);
         c2 = floorf(w1 * v1[2] + w2 * v2[2] + w3 * v3[2] + w4 * v4[2] + 0.5f);
@@ -501,7 +397,7 @@ void warp_affine_bilinear_and_normalize_plane(
     auto grid  = grid_dims(jobs);
     auto block = block_dims(jobs);
     
-    checkCudaKernel(warp_affine_bilinear_and_normalize_plane_kernel << <grid, block, 0, stream >> > (
+    checkCudaKernel(warp_affine_bilinear_and_normalize_plane_kernel <<<grid, block, 0, stream >>> (
         src, src_line_size,
         src_width, src_height, dst,
         dst_width, dst_height, const_value, matrix_2_3, norm, jobs

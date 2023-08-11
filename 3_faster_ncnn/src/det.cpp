@@ -85,7 +85,7 @@ ncnn::Mat Det::preprocess(cv::Mat img) {
     // input_.substract_mean_normalize(mean_vals_, norm_vals_);
     return out;
 }
-
+// TODO 输入内存应该还可以优化；num_thread应该在初始化模型的地方，同时增加use_vulkan_compute 选项
 void Det::inference(std::string input_name, ncnn::Mat &input_, std::string output_name, int num_threads){
     auto ex = net_.create_extractor();
     // INFO("inputname: %s", input_name);

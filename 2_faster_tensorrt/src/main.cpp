@@ -15,6 +15,52 @@ static const char* classes[] = {
     "echinus", "starfish", "holothurian", "scallop"
 };
 
+// batch1 推理
+void test_for_nsys() {
+
+    printf("===================== test_for_nsys ==================================\n");
+    printf("TRTVersion: %s\n", YOLO::trt_version());
+
+    YOLO::set_device(deviceid);
+    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
+    if(yolo == nullptr) {
+        printf("Yolo is nullptr\n");
+        return;
+    }
+
+    auto image = cv::imread("../inference/1.jpg");
+    
+    // warmup
+    for(int i = 0; i < 100; ++i){
+        auto boxes_array = yolo->commit(image);
+        boxes_array.get();
+    }
+
+    int ntest = 200;
+    queue<shared_future<YOLO::BoxArray>> out_queue;
+    auto start_time = std::chrono::system_clock::now();
+    for(int i=0;i<ntest;i++){
+        auto objs = yolo->commit(image);
+        out_queue.emplace(objs);
+        if(out_queue.size() <= 2){
+            continue;
+        }
+        // 虽然看起来快了 但是相比于真实时间其实是需要分情况的，计算公式是下面
+        // 可以看到如果模型比较大的时候这个方法才会受益
+
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+    while(!out_queue.empty()){
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+
+    auto end_time = std::chrono::system_clock::now();
+    float inference_average_time = chrono::duration_cast<chrono::milliseconds>(end_time-start_time).count() / (ntest*1.0);
+    printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
+}
+
 
 // batch1 推理
 void test_batch_1_img() {
@@ -240,6 +286,7 @@ void test_batch_1_video(){
 
 
 int main(){
+    test_for_nsys();
     // test_batch_1_img();
     // test_batch_1_img_queue(2);
     // test_batch_1_img_thread();

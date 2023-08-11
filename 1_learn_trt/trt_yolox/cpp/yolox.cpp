@@ -444,14 +444,14 @@ Yolox::~Yolox() {
 int main(int argc, char** argv) {
     cudaSetDevice(DEVICE);
 
-    const std::string input_image_path = "/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg";
+    const std::string input_image_path = "../../../../2_faster_tensorrt/inference/1.jpg";
     const std::string engine_file_path="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
     
     Yolox yolox(engine_file_path);
     cv::Mat img;
     img = cv::imread(input_image_path);
     // warmup 
-    for (int num =0; num < 50; num++) {
+    for (int num =0; num < 500; num++) {
       yolox.Infer(img, false);
     }
     // inference

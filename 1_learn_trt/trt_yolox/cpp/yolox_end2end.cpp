@@ -275,8 +275,8 @@ YoloEnd2End::~YoloEnd2End() {
 
 int main(int argc, char** argv) {
     cudaSetDevice(DEVICE);
-    const std::string input_image_path = "/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg";
-    const std::string engine_file_path="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox_end2end.engine";
+    const std::string input_image_path = "../../../../2_faster_tensorrt/inference/1.jpg";
+    const std::string engine_file_path="../../../../2_faster_tensorrt/yolox_end2end.engine";
 
   
     float* Boxes = new float[400];
@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
     cv::Mat img;
     img = cv::imread(input_image_path);
     // warmup 
-    for (int num =0; num < 50; num++) {
+    for (int num =0; num < 500; num++) {
         yolo_end2end.Infer(img, Boxes, Scores, ClassIndexs, BboxNum);
     }
     // inference

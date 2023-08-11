@@ -11,3 +11,5 @@
 *.engine
 *.onnx
 !**/build/*.so
+
+5_yolov8/

@@ -53,30 +53,30 @@ DecodeMeta DecodeMeta::x_default_meta(){
 }
 
 // yolov5 p5 decode数据
-DecodeMeta DecodeMeta::v5_p5_default_meta(){
-    DecodeMeta meta;
-    meta.num_anchor = 3;
-    meta.num_level = 3;
+// DecodeMeta DecodeMeta::v5_p5_default_meta(){
+//     DecodeMeta meta;
+//     meta.num_anchor = 3;
+//     meta.num_level = 3;
 
-    float anchors[] = {
-        10.000000, 13.000000, 16.000000, 30.000000, 33.000000, 23.000000,
-        30.000000, 61.000000, 62.000000, 45.000000, 59.000000, 119.000000,
-        116.000000, 90.000000, 156.000000, 198.000000, 373.000000, 326.000000
-    };  
+//     float anchors[] = {
+//         10.000000, 13.000000, 16.000000, 30.000000, 33.000000, 23.000000,
+//         30.000000, 61.000000, 62.000000, 45.000000, 59.000000, 119.000000,
+//         116.000000, 90.000000, 156.000000, 198.000000, 373.000000, 326.000000
+//     };  
 
-    int abs_index = 0;
-    for(int i = 0; i < meta.num_level; ++i){
-        for(int j = 0; j < meta.num_anchor; ++j){
-            int aidx = i * meta.num_anchor + j;
-            meta.w[aidx] = anchors[abs_index++];
-            meta.h[aidx] = anchors[abs_index++];
-        }
-    }
+//     int abs_index = 0;
+//     for(int i = 0; i < meta.num_level; ++i){
+//         for(int j = 0; j < meta.num_anchor; ++j){
+//             int aidx = i * meta.num_anchor + j;
+//             meta.w[aidx] = anchors[abs_index++];
+//             meta.h[aidx] = anchors[abs_index++];
+//         }
+//     }
 
-    const int strides[] = {8, 16, 32};
-    memcpy(meta.strides, strides, sizeof(meta.strides));
-    return meta;
-}
+//     const int strides[] = {8, 16, 32};
+//     memcpy(meta.strides, strides, sizeof(meta.strides));
+//     return meta;
+// }
 
 
 
@@ -90,20 +90,22 @@ YoloTRTInferImpl::~YoloTRTInferImpl(){
 // 启动 但不是重写基类的startup 参数不一样 里面会去调用基类
 bool YoloTRTInferImpl::startup(const string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold){
 
-    if(type == YoloType::V5){
-        normalize_ = Norm::alpha_beta(1 / 255.0f, 0.0f, ChannelType::SwapRB);
-        meta_ = DecodeMeta::v5_p5_default_meta();
-    }else if(type == YoloType::X){
+    if(type == YoloType::X){
         normalize_ = Norm::None();
         meta_ = DecodeMeta::x_default_meta();
-    }else{
+    } 
+    // else if(type == YoloType::V5) {
+    //     normalize_ = Norm::alpha_beta(1 / 255.0f, 0.0f, ChannelType::SwapRB);
+    //     meta_ = DecodeMeta::v5_p5_default_meta();
+    // }
+    else{
         INFOE("Unsupport type %d", type);
     }
     
     confidence_threshold_ = confidence_threshold;
     nms_threshold_        = nms_threshold;
-    type_ = type;
-    batch_size_ = batch_size;
+    type_                 = type;
+    batch_size_           = batch_size;
     return ThreadSafedAsyncInferImpl::startup(make_tuple(file, gpuid));
 }
 

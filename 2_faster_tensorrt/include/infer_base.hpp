@@ -239,7 +239,8 @@ public:
         ////////////////////上锁并且推进队列////////////////////////////
         {
             std::unique_lock<std::mutex> l(jobs_lock_);
-            jobs_.push(job);
+            // jobs_.push(job);
+            jobs_.emplace(job);
         };
         cond_.notify_one();
         return job.pro->get_future();

@@ -17,8 +17,7 @@ int main() {
     YOLO::set_device(deviceid);
     
     auto type = YOLO::YoloType::X;
-    const std::string model_file="/home/zzx/Github/zzx_yolo/yolox_infer/99_trt_new/yolox_b16.engine";
-    // const std::string model_file="/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/bin/yolox.engine";
+    const string model_file="../yolox_b16.engine";
     
     float confidence_threshold = 0.5f;
     float nms_threshold = 0.65f;

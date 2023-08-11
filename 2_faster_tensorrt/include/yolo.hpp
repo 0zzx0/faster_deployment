@@ -67,7 +67,7 @@ struct DecodeMeta{
     float w[16], h[16];
     int strides[16];
 
-    static DecodeMeta v5_p5_default_meta();
+    // static DecodeMeta v5_p5_default_meta();
     static DecodeMeta x_default_meta();
 };
 

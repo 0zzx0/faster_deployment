@@ -161,6 +161,7 @@ private:
     float confidence_threshold_ = 0;
     float nms_threshold_        = 0;
     cudaStream_t stream_       = nullptr;
+    cudaStream_t stream_pro_   = nullptr;
     Norm normalize_;
     YoloType type_;
     DecodeMeta meta_;

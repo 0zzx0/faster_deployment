@@ -149,6 +149,7 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
     affin_matrix_device.resize(max_batch_size, 8).to_gpu();
 
     // 这里的 1 + MAX_IMAGE_BBOX结构是，counter + bboxes ...
+    output_array_device.set_stream(stream_);
     output_array_device.resize(max_batch_size, 1 + MAX_IMAGE_BBOX * NUM_BOX_ELEMENT).to_gpu();
 
     auto decode_kernel_invoker = yolox_decode_kernel_invoker;
@@ -219,6 +220,9 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
         fetch_jobs.clear();
     }
     stream_ = nullptr;
+    // TODO 这个流是否要考虑换个地方释放？
+    checkCudaRuntime(cudaStreamDestroy(stream_pro_));
+    stream_pro_ = nullptr;
     tensor_allocator_.reset();
     INFO("Engine destroy.");
 }
@@ -285,6 +289,10 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
         return false;
     }
 
+    if (stream_pro_==nullptr) {
+        checkCudaRuntime(cudaStreamCreate(&stream_pro_));
+    }
+
     AutoDevice auto_device(gpu_);
     auto& tensor = job.mono_tensor->data();
     if(tensor == nullptr){
@@ -296,7 +304,7 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     Size input_size(input_width_, input_height_);
     job.additional.compute(image.size(), input_size);
     
-    tensor->set_stream(stream_);
+    tensor->set_stream(stream_pro_);
     tensor->resize(1, 3, input_height_, input_width_);
 
     size_t size_image      = image.cols * image.rows * 3;
@@ -313,8 +321,8 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     // speed up
     memcpy(image_host, image.data, size_image);
     memcpy(affine_matrix_host, job.additional.d2i, sizeof(job.additional.d2i));
-    checkCudaRuntime(cudaMemcpyAsync(image_device, image_host, size_image, cudaMemcpyHostToDevice, stream_));
-    checkCudaRuntime(cudaMemcpyAsync(affine_matrix_device, affine_matrix_host, sizeof(job.additional.d2i), cudaMemcpyHostToDevice, stream_));
+    checkCudaRuntime(cudaMemcpyAsync(image_device, image_host, size_image, cudaMemcpyHostToDevice, stream_pro_));
+    checkCudaRuntime(cudaMemcpyAsync(affine_matrix_device, affine_matrix_host, sizeof(job.additional.d2i), cudaMemcpyHostToDevice, stream_pro_));
 
     // resize_bilinear_and_normalize(
     //     image_device, image.cols*3, image.cols, image.rows,
@@ -324,8 +332,10 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     warp_affine_bilinear_and_normalize_plane(
         image_device,         image.cols * 3,       image.cols,         image.rows, 
         tensor->gpu<float>(), input_width_,         input_height_, 
-        affine_matrix_device, 114,                  normalize_,         stream_
+        affine_matrix_device, 114,                  normalize_,         stream_pro_
     );
+    // 这个地方需要同步，确保数据放到gpu后才可以吧任务提交到队列中。
+    cudaStreamSynchronize(stream_pro_);
 
     return true;
 }

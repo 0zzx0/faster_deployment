@@ -31,31 +31,34 @@ void test_for_nsys() {
     auto image = cv::imread("../inference/1.jpg");
     
     // warmup
-    for(int i = 0; i < 100; ++i){
+    for(int i = 0; i < 500; ++i){
         auto boxes_array = yolo->commit(image);
         boxes_array.get();
     }
-
-    int ntest = 200;
+    int ntest = 1000;
     queue<shared_future<YOLO::BoxArray>> out_queue;
     auto start_time = std::chrono::system_clock::now();
     for(int i=0;i<ntest;i++){
         auto objs = yolo->commit(image);
         out_queue.emplace(objs);
-        if(out_queue.size() <= 2){
+        if(out_queue.size() <= 1){
             continue;
         }
-        // 虽然看起来快了 但是相比于真实时间其实是需要分情况的，计算公式是下面
-        // 可以看到如果模型比较大的时候这个方法才会受益
-
         auto res = out_queue.front().get();
         out_queue.pop();
+        // 1.42ms   704.47fps
     }
     while(!out_queue.empty()){
         auto res = out_queue.front().get();
         out_queue.pop();
     }
 
+    // int ntest = 1000;
+    // auto start_time = std::chrono::system_clock::now();
+    for(int i=0;i<ntest;i++){
+        auto objs = yolo->commit(image).get();
+        // 1.86ms 538.79fps
+    }
     auto end_time = std::chrono::system_clock::now();
     float inference_average_time = chrono::duration_cast<chrono::milliseconds>(end_time-start_time).count() / (ntest*1.0);
     printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time, 1000 / inference_average_time);
@@ -83,7 +86,7 @@ void test_batch_1_img() {
         boxes_array.get();
     }
 
-    int ntest = 1000;
+    int ntest = 200;
     auto start_time = std::chrono::system_clock::now();
     for(int i=0;i<ntest;i++){
         auto objs = yolo->commit(image);
@@ -100,7 +103,7 @@ void test_batch_1_img() {
         cout << obj.bottom <<" "<< obj.top <<" "<<obj.left<<" "<<obj.right << " " << obj.confidence <<endl;
     }
     /**
-     * [zzx] average: 2.00 ms / image, FPS: 500.00
+     * [zzx] average: 2.28 ms / image, FPS: 438.60
      */
 }
 
@@ -131,7 +134,7 @@ void test_batch_1_img_queue(int keep_queue_long){
     for(int i=0;i<ntest;i++){
         auto objs = yolo->commit(image);
         out_queue.emplace(objs);
-        if(out_queue.size() <= keep_queue_long){
+        if(out_queue.size() < keep_queue_long){
             continue;
         }
         // 虽然看起来快了 但是相比于真实时间其实是需要分情况的，计算公式是下面
@@ -160,6 +163,7 @@ void test_batch_1_img_queue(int keep_queue_long){
 
 /*
     [zzx] average: 1.84 ms / image, FPS: 542.89
+    [zzx_multi_stream] average: 1.41 ms / image, FPS: 709.98
     [ori] average: 2.25 ms / image, FPS: 444.64
 */
 }
@@ -286,9 +290,9 @@ void test_batch_1_video(){
 
 
 int main(){
-    test_for_nsys();
+    // test_for_nsys();
     // test_batch_1_img();
-    // test_batch_1_img_queue(2);
+    test_batch_1_img_queue(2);
     // test_batch_1_img_thread();
     return 0;
 }

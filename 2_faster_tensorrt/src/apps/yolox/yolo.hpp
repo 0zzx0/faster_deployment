@@ -16,10 +16,10 @@
 #include <NvOnnxParser.h>
 #include <cuda_runtime.h>
 
-#include "tools.hpp"
-#include "memory_tensor.hpp"
-#include "monopoly_accocator.hpp"
-#include "infer_base.hpp"
+#include "../../base/tools.hpp"
+#include "../../base/memory_tensor.hpp"
+#include "../../base/monopoly_accocator.hpp"
+#include "../../base/infer_base.hpp"
 
 namespace YOLO{
 

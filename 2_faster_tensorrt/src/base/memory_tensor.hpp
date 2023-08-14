@@ -1,10 +1,12 @@
 #ifndef MEMORY_TENSOR_HPP
 #define MEMORY_TENSOR_HPP
 
-#include "tools.hpp"
-
 #include <memory>
 #include <opencv2/opencv.hpp>
+#include <memory.h>
+#include <cuda_fp16.h>
+
+#include "tools.hpp"
 
 namespace YOLO{
 

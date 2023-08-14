@@ -1,8 +1,6 @@
 #ifndef TOOLS_HPP
 #define TOOLS_HPP
 
-#include <cuda_runtime.h>
-
 #include <fstream>
 #include <string>
 #include <vector>
@@ -13,6 +11,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdarg.h>
+
+#include <cuda_runtime.h>
+
 /*
 一些工具函数 包括CUDA检查 输出
 文件保存读取等函数

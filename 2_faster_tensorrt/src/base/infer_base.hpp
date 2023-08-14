@@ -1,10 +1,6 @@
 #ifndef INFER_BASE_HPP
 #define INFER_BASE_HPP
 
-#include "memory_tensor.hpp"
-#include "monopoly_accocator.hpp"
-#include "cuda_kernel.cuh"
-
 #include <string>
 #include <future>
 #include <memory>
@@ -15,6 +11,9 @@
 
 #include <NvInfer.h>
 
+#include "memory_tensor.hpp"
+#include "monopoly_accocator.hpp"
+#include "../kernels/cuda_kernel.cuh"
 
 namespace YOLO{
 

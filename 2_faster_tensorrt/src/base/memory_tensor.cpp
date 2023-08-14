@@ -1,7 +1,5 @@
 #include "memory_tensor.hpp"
 
-#include<memory.h>
-#include <cuda_fp16.h>
 
 namespace YOLO{
 

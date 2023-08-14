@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "yolo.hpp"
+#include "../apps/yolox/yolo.hpp"
 #include "save.hpp"
 
 using namespace std;

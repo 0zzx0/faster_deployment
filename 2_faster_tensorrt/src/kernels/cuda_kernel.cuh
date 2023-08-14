@@ -6,7 +6,7 @@
 
 #include <cuda_runtime.h>
 
-#include "tools.hpp"
+#include "../base/tools.hpp"
 
 namespace YOLO{
 

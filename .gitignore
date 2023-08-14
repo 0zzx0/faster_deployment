@@ -10,7 +10,7 @@
 *.tar.gz
 *.engine
 *.onnx
-!**/build/*.so
+# !**/build/*.so
 
 5_yolov8/
 6_test_stream/

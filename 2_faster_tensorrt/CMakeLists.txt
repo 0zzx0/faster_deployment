@@ -10,7 +10,8 @@ find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(${PROJECT_SOURCE_DIR}/include)
+# include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/src)
 
 # cuda
 include_directories(/usr/local/cuda-10.2/include)
@@ -25,8 +26,8 @@ link_directories(/home/zzx/Github/zzx_yolo/EXTRA_PKG/TensorRT-8.5.3.1/lib)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O0 -Wfatal-errors -pthread -w -g")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 -O0 -Xcompiler -fPIC -g -w ${CUDA_GEN_CODE}")
 
-file(GLOB_RECURSE cpp_srcs ${PROJECT_SOURCE_DIR}/src/*.cpp)
-file(GLOB_RECURSE cuda_srcs ${PROJECT_SOURCE_DIR}/src/*.cu)
+# file(GLOB_RECURSE cpp_srcs ${PROJECT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE cuda_srcs ${PROJECT_SOURCE_DIR}/src/kernels/*.cu)
 
 cuda_add_library(plugin_list SHARED ${cuda_srcs})
 target_link_libraries(plugin_list nvinfer nvinfer_plugin)
@@ -36,9 +37,9 @@ target_link_libraries(plugin_list ${OpenCV_LIBS})
 
 add_executable(yolo 
     ${PROJECT_SOURCE_DIR}/src/main.cpp
-    ${PROJECT_SOURCE_DIR}/src/infer_base.cpp
-    ${PROJECT_SOURCE_DIR}/src/memory_tensor.cpp
-    ${PROJECT_SOURCE_DIR}/src/yolo.cpp
+    ${PROJECT_SOURCE_DIR}/src/base/infer_base.cpp
+    ${PROJECT_SOURCE_DIR}/src/base/memory_tensor.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/yolox/yolo.cpp
 )
 target_link_libraries(yolo plugin_list)
 target_link_libraries(yolo nvinfer nvinfer_plugin nvonnxparser)
@@ -50,9 +51,9 @@ target_link_libraries(yolo ${OpenCV_LIBS})
 add_executable(eval 
     ${PROJECT_SOURCE_DIR}/src/eval/eval.cpp
     ${PROJECT_SOURCE_DIR}/src/eval/save.hpp
-    ${PROJECT_SOURCE_DIR}/src/infer_base.cpp
-    ${PROJECT_SOURCE_DIR}/src/memory_tensor.cpp
-    ${PROJECT_SOURCE_DIR}/src/yolo.cpp
+    ${PROJECT_SOURCE_DIR}/src/base/infer_base.cpp
+    ${PROJECT_SOURCE_DIR}/src/base/memory_tensor.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/yolox/yolo.cpp
     )
 target_link_libraries(eval plugin_list)
 target_link_libraries(eval nvinfer nvinfer_plugin nvonnxparser)

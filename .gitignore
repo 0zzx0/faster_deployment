@@ -1,16 +1,13 @@
 .vscode/
 
 **/build/*
-/mmtools/
 
-
-!/trt_demo/files/*
-
-
-*.tar.gz
 *.engine
 *.onnx
+*.so
+
+/3_faster_ncnn/*.bin
+/3_faster_ncnn/*.param
 # !**/build/*.so
 
 5_yolov8/
-6_test_stream/

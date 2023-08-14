@@ -6,17 +6,6 @@
 
 namespace YOLO{
 
-// 获取trt的版本号
-const char* trt_version(){
-    return TRT_VERSION_STRING(NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, NV_TENSORRT_BUILD);
-}
-
-// 设置推理设备
-void set_device(int device_id) {
-    if (device_id == -1)
-        return;
-    checkCudaRuntime(cudaSetDevice(device_id));
-}
 
 // 返回mode的名字
 const char* mode_string(Mode type) {

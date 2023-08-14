@@ -26,23 +26,15 @@ namespace YOLO{
 using namespace std;
 using namespace nvinfer1;
 
-///////////////////////TRT/////////////////////////////
-#define TRT_STR(v)  #v
-#define TRT_VERSION_STRING(major, minor, patch, build)   TRT_STR(major) "." TRT_STR(minor) "." TRT_STR(patch) "." TRT_STR(build)
-const char* trt_version();
 
 //////////////////////模型选择//////////////////////////
 enum class YoloType : int{V5 = 0, X  = 1};
 // 推理数据类型
 enum class Mode : int{FP32, FP16, INT8};
 
-const char* trt_version();
 const char* mode_string(Mode type);
 const char* type_name(YoloType type);
-void set_device(int device_id);
 
-////////////////////量化用的///////////////////////////
-typedef std::function<void(int current, int count, const std::vector<std::string>& files, std::shared_ptr<Tensor>& tensor)> Int8Process;
 
 
 ///////////////////////// 推理结果格式////////////////
@@ -69,17 +61,6 @@ struct DecodeMeta{
 
     // static DecodeMeta v5_p5_default_meta();
     static DecodeMeta x_default_meta();
-};
-
-
-/*
-推理的虚基类 最终暴露给用户的只有这个接口
-实际推理的类应该继承并实现下面两个纯虚函数
-*/
-class Infer{
-public:
-    virtual shared_future<BoxArray> commit(const cv::Mat& image) = 0;
-    virtual vector<shared_future<BoxArray>> commits(const vector<cv::Mat> &images) = 0;
 };
 
 
@@ -132,9 +113,10 @@ using ThreadSafedAsyncInferImpl = ThreadSafedAsyncInfer
     tuple<string, int>,         // start param
     AffineMatrix                // additional
 >;
+using Infer = InferBase<cv::Mat, BoxArray>;
 
 /* Yolo的具体实现
-    通过上述类的特性，实现预处理的计算重叠、异步跨线程调用，最终拼接为多个图为一个batch进行推理。
+    通过上述类的特性，实现预处理的计算重叠、异步跨线程调用，进行推理。
     最大化的利用卡性能，实现高性能高yolo推理
 */
 class YoloTRTInferImpl : public Infer, public ThreadSafedAsyncInferImpl{
@@ -169,6 +151,8 @@ private:
 };
 
 
+////////////////////量化用的///////////////////////////
+typedef std::function<void(int current, int count, const std::vector<std::string>& files, std::shared_ptr<Tensor>& tensor)> Int8Process;
 
 /* 
 int8 量化 未测试

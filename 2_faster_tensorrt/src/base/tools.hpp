@@ -38,6 +38,12 @@ namespace YOLO{
     static string file_name(const string& path, bool include_suffix);
     static void __log_func(const char* file, int line, LogLevel level, const char* fmt, ...);
 
+    ///////////////////////TRT/////////////////////////////
+    #define TRT_STR(v)  #v
+    #define TRT_VERSION_STRING(major, minor, patch, build)   TRT_STR(major) "." TRT_STR(minor) "." TRT_STR(patch) "." TRT_STR(build)
+    static const char* trt_version(){
+        return TRT_VERSION_STRING(NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, NV_TENSORRT_BUILD);
+    }
 
     
     /* 修改这个level来实现修改日志输出级别 */
@@ -229,7 +235,14 @@ namespace YOLO{
         return output.str();
     }
 
-    
+
+    // 设置推理设备
+    static void set_device(int device_id) {
+        if (device_id == -1)
+            return;
+        checkCudaRuntime(cudaSetDevice(device_id));
+    }
+
 
 }; // end namespace YOLO
 

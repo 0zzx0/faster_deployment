@@ -1,4 +1,4 @@
-#include "./apps/yolox/yolo.hpp"
+#include "./apps/yolo/yolo.hpp"
 
 using namespace std;
 

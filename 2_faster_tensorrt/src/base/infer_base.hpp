@@ -327,6 +327,19 @@ protected:
     std::shared_ptr<MonopolyAllocator<Tensor>> tensor_allocator_;
 };
 
+
+/*
+推理的虚基类 最终暴露给用户的只有这个接口
+实际推理的类应该继承并实现下面两个纯虚函数
+*/
+template<class Intput, class Output>
+class InferBase{
+public:
+    virtual shared_future<Output> commit(const Intput& image) = 0;
+    virtual vector<shared_future<Output>> commits(const vector<Intput> &images) = 0;
+};
+
+
 // 产生一个trt推理的智能指针 参数是序列化文件路径
 std::shared_ptr<TRTInferImpl> load_infer(const string& file, int batch_size);
 

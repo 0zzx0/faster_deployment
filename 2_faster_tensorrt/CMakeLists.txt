@@ -39,7 +39,7 @@ add_executable(yolo
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/base/infer_base.cpp
     ${PROJECT_SOURCE_DIR}/src/base/memory_tensor.cpp
-    ${PROJECT_SOURCE_DIR}/src/apps/yolox/yolo.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/yolo/yolo.cpp
 )
 target_link_libraries(yolo plugin_list)
 target_link_libraries(yolo nvinfer nvinfer_plugin nvonnxparser)
@@ -53,7 +53,7 @@ add_executable(eval
     ${PROJECT_SOURCE_DIR}/src/eval/save.hpp
     ${PROJECT_SOURCE_DIR}/src/base/infer_base.cpp
     ${PROJECT_SOURCE_DIR}/src/base/memory_tensor.cpp
-    ${PROJECT_SOURCE_DIR}/src/apps/yolox/yolo.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/yolo/yolo.cpp
     )
 target_link_libraries(eval plugin_list)
 target_link_libraries(eval nvinfer nvinfer_plugin nvonnxparser)

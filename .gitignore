@@ -6,8 +6,8 @@
 *.onnx
 *.so
 
-/3_faster_ncnn/*.bin
-/3_faster_ncnn/*.param
+3_faster_ncnn/*.bin
+3_faster_ncnn/*.param
 # !**/build/*.so
 
 5_yolov8/

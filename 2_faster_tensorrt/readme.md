@@ -31,11 +31,14 @@
 4. `monopoly_accocator.hpp`: 定义内存独占管理分配器，最终实现预处理和推理并行的重要工具
 5. `infer_base.hpp`: 定义trt引擎管理类和异步安全推理类
 6. `infer_base.cpp`: trt引擎管理类和异步安全推理类的实现
+7. `trt_base.hpp`: 定义trt引擎构建和量化
+8. `trt_base.hpp`: trt引擎构建和量化实现
 
 ### 1.2 kernels
 
 推荐把cuda相关实现放在此文件夹中。
 
+1. `cuda_kernel.cuh`: cuda核函数的定义
 1. `cuda_kernel.cu`: cuda核函数的实现，预处理和后处理相关的cuda加速代码
 
 
@@ -56,7 +59,7 @@
 
 这里是实际模型的实现地方，定义模型的结构，推理过程，预处理和后处理流程等，推荐每个模型新建一个文件夹实现。
 
-1. `yolo/yolo.hpp`: 定义yolo的推理
+1. `yolo/yolo.h`: 定义yolo的推理
 2. `yolo/yolo.cpp`: yolo推理的实现
 
 
@@ -224,12 +227,14 @@ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.558
 
 #### 2.5.2 实现
 
-首先包含相关头文件
+首先包含相关头文件，并使用命名空间
 ```cpp
 #include "../../base/tools.hpp"
 #include "../../base/memory_tensor.hpp"
 #include "../../base/monopoly_accocator.hpp"
 #include "../../base/infer_base.hpp"
+#include "../../base/trt_base.hpp"
+using namespace FasterTRT;
 ```
 然后新建一个推理类，并实现相关方法。
 ```cpp
@@ -251,7 +256,7 @@ class YoloDETR : public Infer, public ThreadSafedAsyncInferImpl {
     // 1. 初始化 里面需要调用ThreadSafedAsyncInferImpl::startup(make_tuple(file, gpuid));
     virtual bool startup(const string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold);
     
-    // 2. 工作线程 里面指定输入输出 输出话内存显存，指定推理顺序等等
+    // 2. 工作线程 里面指定输入输出 并初始化内存显存，指定推理顺序等等
     virtual void worker(promise<bool>& result) override;
 
     // 3. 预处理操作

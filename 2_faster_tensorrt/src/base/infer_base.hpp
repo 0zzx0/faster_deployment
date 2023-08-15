@@ -15,10 +15,9 @@
 #include "monopoly_accocator.hpp"
 #include "../kernels/cuda_kernel.cuh"
 
-namespace YOLO{
+namespace FasterTRT {
 
 using namespace nvinfer1;
-using namespace cv;
 
 /////////////////////////////////TRT logger部分/////////////////////////////////
 class Logger : public ILogger {
@@ -80,16 +79,16 @@ public:
         if(stream_ == nullptr)
             return false;
 
-        runtime_ = shared_ptr<IRuntime>(createInferRuntime(gLogger), destroy_nvidia_pointer<IRuntime>);
+        runtime_ = std::shared_ptr<IRuntime>(createInferRuntime(gLogger), destroy_nvidia_pointer<IRuntime>);
         if (runtime_ == nullptr)
             return false;
 
-        engine_ = shared_ptr<ICudaEngine>(runtime_->deserializeCudaEngine(pdata, size, nullptr), destroy_nvidia_pointer<ICudaEngine>);
+        engine_ = std::shared_ptr<ICudaEngine>(runtime_->deserializeCudaEngine(pdata, size, nullptr), destroy_nvidia_pointer<ICudaEngine>);
         if (engine_ == nullptr)
             return false;
 
         //runtime_->setDLACore(0);
-        context_ = shared_ptr<IExecutionContext>(engine_->createExecutionContext(), destroy_nvidia_pointer<IExecutionContext>);
+        context_ = std::shared_ptr<IExecutionContext>(engine_->createExecutionContext(), destroy_nvidia_pointer<IExecutionContext>);
         return context_ != nullptr;
     }
 
@@ -109,9 +108,9 @@ private:
 public:
     cudaStream_t stream_ = nullptr;
     bool owner_stream_ = false;
-    shared_ptr<IExecutionContext> context_;
-    shared_ptr<ICudaEngine> engine_;
-    shared_ptr<IRuntime> runtime_ = nullptr;
+    std::shared_ptr<IExecutionContext> context_;
+    std::shared_ptr<ICudaEngine> engine_;
+    std::shared_ptr<IRuntime> runtime_ = nullptr;
 };
 
 
@@ -335,13 +334,13 @@ protected:
 template<class Intput, class Output>
 class InferBase{
 public:
-    virtual shared_future<Output> commit(const Intput& image) = 0;
-    virtual vector<shared_future<Output>> commits(const vector<Intput> &images) = 0;
+    virtual std::shared_future<Output> commit(const Intput& image) = 0;
+    virtual std::vector<std::shared_future<Output>> commits(const std::vector<Intput> &images) = 0;
 };
 
 
 // 产生一个trt推理的智能指针 参数是序列化文件路径
-std::shared_ptr<TRTInferImpl> load_infer(const string& file, int batch_size);
+std::shared_ptr<TRTInferImpl> load_infer(const std::string& file, int batch_size);
 
 };
 

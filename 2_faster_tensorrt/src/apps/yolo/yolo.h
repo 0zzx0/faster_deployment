@@ -20,21 +20,16 @@
 #include "../../base/memory_tensor.hpp"
 #include "../../base/monopoly_accocator.hpp"
 #include "../../base/infer_base.hpp"
+#include "../../base/trt_base.hpp"
 
 namespace YOLO{
-
-using namespace std;
-using namespace nvinfer1;
-
+using namespace FasterTRT;
 
 //////////////////////模型选择//////////////////////////
 enum class YoloType : int{V5 = 0, X  = 1};
-// 推理数据类型
-enum class Mode : int{FP32, FP16, INT8};
 
-const char* mode_string(Mode type);
+
 const char* type_name(YoloType type);
-
 
 
 ///////////////////////// 推理结果格式////////////////
@@ -46,7 +41,7 @@ struct Box{
     Box(float left, float top, float right, float bottom, float confidence, int class_label)
     :left(left), top(top), right(right), bottom(bottom), confidence(confidence), class_label(class_label){}
 };
-typedef vector<Box> BoxArray;
+typedef std::vector<Box> BoxArray;
 
 
 /* Decode配置的实现
@@ -65,25 +60,6 @@ struct DecodeMeta{
 
 
 // 仿射变换矩阵
-// struct AffineMatrix{
-//     float i2d[3];       // image to dst(network)
-//     float d2i[3];       // dst to image
-
-//     void compute(const cv::Size& from, const cv::Size& to){
-//         float scale_x = to.width / (float)from.width;
-//         float scale_y = to.height / (float)from.height;
-//         float scale = std::min(scale_x, scale_y);
-//         i2d[0] = scale;  
-//         i2d[1] = -scale * from.width  * 0.5 + to.width  * 0.5 + scale * 0.5 - 0.5;
-//         i2d[2] = -scale * from.height * 0.5 + to.height * 0.5 + scale * 0.5 - 0.5;
-
-//         // y = kx + b
-//         // x = (y-b)/k = y*1/k + (-b)/k
-//         d2i[0] = 1/scale; 
-//         d2i[1] = -i2d[1] / scale;
-//         d2i[2] = -i2d[2] / scale;
-//     }
-// };
 struct AffineMatrix{
     float i2d[6];       // image to dst(network), 2x3 matrix
     float d2i[6];       // dst to image, 2x3 matrix
@@ -110,7 +86,7 @@ using ThreadSafedAsyncInferImpl = ThreadSafedAsyncInfer
 <
     cv::Mat,                    // input
     BoxArray,                   // output
-    tuple<string, int>,         // start param
+    std::tuple<std::string, int>,         // start param
     AffineMatrix                // additional
 >;
 using Infer = InferBase<cv::Mat, BoxArray>;
@@ -126,12 +102,12 @@ public:
     ~YoloTRTInferImpl();
 
     
-    virtual bool startup(const string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold);
-    virtual void worker(promise<bool>& result) override;
-    virtual bool preprocess(Job& job, const Mat& image) override;
+    virtual bool startup(const std::string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold);
+    virtual void worker(std::promise<bool>& result) override;
+    virtual bool preprocess(Job& job, const cv::Mat& image) override;
 
-    virtual vector<shared_future<BoxArray>> commits(const vector<Mat>& images) override;
-    virtual shared_future<BoxArray> commit(const Mat& image) override;
+    virtual std::vector<std::shared_future<BoxArray>> commits(const std::vector<cv::Mat>& images) override;
+    virtual std::shared_future<BoxArray> commit(const cv::Mat& image) override;
 
     void init_yolox_prior_box(Tensor& prior_box);
     void init_yolov5_prior_box(Tensor& prior_box);
@@ -151,40 +127,6 @@ private:
 };
 
 
-////////////////////量化用的///////////////////////////
-typedef std::function<void(int current, int count, const std::vector<std::string>& files, std::shared_ptr<Tensor>& tensor)> Int8Process;
-
-/* 
-int8 量化 未测试
-*/
-class Int8EntropyCalibrator : public IInt8EntropyCalibrator2{
-public:
-    Int8EntropyCalibrator(const vector<string>& imagefiles, nvinfer1::Dims dims, const Int8Process& preprocess);
-    Int8EntropyCalibrator(const vector<uint8_t>& entropyCalibratorData, nvinfer1::Dims dims, const Int8Process& preprocess);
-    virtual ~Int8EntropyCalibrator();
-
-    int getBatchSize() const noexcept;
-    bool next();
-    bool getBatch(void* bindings[], const char* names[], int nbBindings) noexcept;
-
-    const vector<uint8_t>& getEntropyCalibratorData();
-    const void* readCalibrationCache(size_t& length) noexcept;
-    virtual void writeCalibrationCache(const void* cache, size_t length) noexcept;
-
-private:
-    Int8Process preprocess_;
-    vector<string> allimgs_;
-    size_t batchCudaSize_ = 0;
-    int cursor_ = 0;
-    nvinfer1::Dims dims_;
-    vector<string> files_;
-    shared_ptr<Tensor> tensor_;
-    vector<uint8_t> entropyCalibratorData_;
-    bool fromCalibratorData_ = false;
-    cudaStream_t stream_ = nullptr;
-};
-
-
 /* 
     trt模型编译(不过我实际建议直接用trtexec转换,嘻嘻0_0)
     max max_batch_size：为最大可以允许的batch数量
@@ -198,19 +140,18 @@ bool compile(
     Mode mode,
     YoloType type,
     unsigned int max_batch_size,
-    const string& source_onnx_file,
-    const string& save_engine_file,
+    const std::string& source_onnx_file,
+    const std::string& save_engine_file,
     size_t max_workspace_size = 1<<30,
-    const string& int8_images_folder="",
-    const string& int8_entropy_calibrator_cache_file=""
+    const std::string& int8_images_folder="",
+    const std::string& int8_entropy_calibrator_cache_file=""
 );
 
-void image_to_tensor(const cv::Mat& image, shared_ptr<Tensor>& tensor, YoloType type, int ibatch);
-vector<string> glob_image_files(const string& directory);
+void image_to_tensor(const cv::Mat& image, std::shared_ptr<Tensor>& tensor, YoloType type, int ibatch);
 
 
-shared_ptr<Infer> create_infer(
-    const string& engine_file,
+std::shared_ptr<Infer> create_infer(
+    const std::string& engine_file,
     YoloType type,
     int gpuid,
     int batch_size,

@@ -1,6 +1,6 @@
 #include "infer_base.hpp"
 
-namespace YOLO{
+namespace FasterTRT{
 ///////////////////////////////////////////////////////////////////////
 /////////////////////////// TRTInferImpl //////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ void TRTInferImpl::print(){
 // 序列化engine
 std::shared_ptr<std::vector<uint8_t>> TRTInferImpl::serial_engine() {
     auto memory = this->context_->engine_->serialize();
-    auto output = make_shared<std::vector<uint8_t>>((uint8_t*)memory->data(), (uint8_t*)memory->data()+memory->size());
+    auto output = std::make_shared<std::vector<uint8_t>>((uint8_t*)memory->data(), (uint8_t*)memory->data()+memory->size());
     memory->destroy();
     return output;
 }
@@ -123,7 +123,7 @@ void TRTInferImpl::build_engine_input_and_outputs_mapper() {
         auto type = context->engine_->getBindingDataType(i);
         const char* bindingName = context->engine_->getBindingName(i);
         dims.d[0] = max_batchsize;
-        auto newTensor = make_shared<Tensor>(dims.nbDims, dims.d);
+        auto newTensor = std::make_shared<Tensor>(dims.nbDims, dims.d);
         newTensor->set_stream(this->context_->stream_);
         newTensor->set_workspace(this->workspace_);
         if (context->engine_->bindingIsInput(i)) {
@@ -288,7 +288,7 @@ std::shared_ptr<Tensor> TRTInferImpl::tensor(const std::string& name) {
 ///////////////////////////////////////////////////////////////////////
 /////////////////////////加载文件初始化对象 /////////////////////////////
 /////////////////////////////////////////////////////////////////////// 
-std::shared_ptr<TRTInferImpl> load_infer(const string& file, int batch_size) {
+std::shared_ptr<TRTInferImpl> load_infer(const std::string& file, int batch_size) {
     
     std::shared_ptr<TRTInferImpl> infer(new TRTInferImpl());
     if (!infer->load(file, batch_size))

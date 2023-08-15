@@ -4,7 +4,7 @@
 cuda kernel
 */
 
-namespace YOLO{
+namespace FasterTRT{
 
 // 确定gpu grid维度
 static dim3 grid_dims(int numJobs) {

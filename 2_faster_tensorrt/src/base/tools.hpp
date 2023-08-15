@@ -20,8 +20,7 @@
 全部在tools里面定义并直接实现
 */
 
-namespace YOLO{
-    using namespace std;
+namespace FasterTRT{
 
     enum class LogLevel : int{
         Debug   = 5,
@@ -35,7 +34,7 @@ namespace YOLO{
     #define CURRENT_DEVICE_ID   -1  // 当前设备
     static bool check_runtime(cudaError_t e, const char* call, int line, const char *file);
     static const char* level_string(LogLevel level);
-    static string file_name(const string& path, bool include_suffix);
+    static std::string file_name(const std::string& path, bool include_suffix);
     static void __log_func(const char* file, int line, LogLevel level, const char* fmt, ...);
 
     ///////////////////////TRT/////////////////////////////
@@ -99,7 +98,7 @@ namespace YOLO{
         }
     }
 
-    static string file_name(const string& path, bool include_suffix){
+    static std::string file_name(const std::string& path, bool include_suffix){
 
         if (path.empty()) return "";
         int p = path.rfind('/');
@@ -126,7 +125,7 @@ namespace YOLO{
         va_start(vl, fmt);
         
         char buffer[2048];
-        string filename = file_name(file, true);
+        std::string filename = file_name(file, true);
         int n = snprintf(buffer, sizeof(buffer), "[%s][%s:%d]:", level_string(level), filename.c_str(), line);
         vsnprintf(buffer + n, sizeof(buffer) - n, fmt, vl);
 
@@ -138,11 +137,11 @@ namespace YOLO{
     }
 
 
-    static bool exists(const string& path){
+    static bool exists(const std::string& path){
         return access(path.c_str(), R_OK) == 0;
     }
 
-    static bool save_file(const string& file, const void* data, size_t length){
+    static bool save_file(const std::string& file, const void* data, size_t length){
 
         FILE* f = fopen(file.c_str(), "wb");
         if (!f) return false;
@@ -157,7 +156,7 @@ namespace YOLO{
         return true;
     }
 
-    static bool save_file(const string& file, const vector<uint8_t>& data){
+    static bool save_file(const std::string& file, const std::vector<uint8_t>& data){
         return save_file(file, data.data(), data.size());
     }
 
@@ -200,18 +199,18 @@ namespace YOLO{
 
 
 
-    static std::vector<uint8_t> load_file(const string& file){
+    static std::vector<uint8_t> load_file(const std::string& file){
 
-        ifstream in(file, ios::in | ios::binary);
+        std::ifstream in(file, std::ios::in | std::ios::binary);
         if (!in.is_open())
             return {};
 
-        in.seekg(0, ios::end);
+        in.seekg(0, std::ios::end);
         size_t length = in.tellg();
 
         std::vector<uint8_t> data;
         if (length > 0){
-            in.seekg(0, ios::beg);
+            in.seekg(0, std::ios::beg);
             data.resize(length);
 
             in.read((char*)&data[0], length);
@@ -224,8 +223,8 @@ namespace YOLO{
     inline int upbound(int n, int align = 32){return (n + align - 1) / align * align;}
 
     template<typename _T>
-    static string join_dims(const vector<_T>& dims){
-        stringstream output;
+    static std::string join_dims(const std::vector<_T>& dims){
+        std::stringstream output;
         char buf[64];
         const char* fmts[] = {"%d", " x %d"};
         for(int i = 0; i < dims.size(); ++i){

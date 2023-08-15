@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../apps/yolo/yolo.hpp"
+#include "../apps/yolo/yolo.h"
 #include "save.hpp"
 
 using namespace std;

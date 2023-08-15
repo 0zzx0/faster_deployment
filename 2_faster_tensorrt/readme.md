@@ -100,6 +100,7 @@ trtexec
     --useCudaGraph          # 使用 CUDAGraph 来捕获和执行推理过程 
     --noDataTransfers       # 关闭 Host 和 Device 之间的数据传输
     --streams=2             # 使用多个 stream 来运行推理
+    --threads               # 使用多线程
     --verbose               # 打印详细日志
     --dumpProfile 
     --exportProfile=layerProfile.txt 	# 保存逐层性能数据信息
@@ -295,12 +296,18 @@ shared_ptr<Infer> create_infer(...){
 ![](./sources/2steam_overview.jpg)
 
 
- 推理图片，不包含图像的读取和画框，warmup500，跑2000轮，平均耗时
+在2080Ti(8.5)上推理图片，不包含图像的读取和画框，warmup500，跑2000轮，平均耗时
 
 | method    | ori       | ori+queue | ori+2stream   | ori+queue+2stream |
 | :----:    | :----:    | :----:    | :----:        | :----:            |
 | cost time | 2.25ms    | 1.84ms    | 2.28ms        | 1.41ms            |
 | FPS       | 444.64    | 542.89    | 438.6         | 709.98            |
+
+<!-- 但是显然不同平台也由不同的问题，在TX2(trt 8.2。因为之后的版本不支持了),因为瓶颈是模型本身了。
+| method    | ori       | ori+queue | ori+2stream   | ori+queue+2stream |
+| :----:    | :----:    | :----:    | :----:        | :----:            |
+| cost time | 40.12     | 38.12ms   | 39.58ms       | 36.32ms          |
+| FPS       | 24.92     | 26.23     | 25.26         | 27.53            | -->
 
 
 ## 4. More优化

@@ -8,7 +8,7 @@
 
 #include "../base/tools.hpp"
 
-namespace YOLO{
+namespace FasterTRT{
 
 
 #define GPU_BLOCK_THREADS  512      // gpu 每个block线程数量

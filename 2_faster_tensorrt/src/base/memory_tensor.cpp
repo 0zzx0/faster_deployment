@@ -1,7 +1,7 @@
 #include "memory_tensor.hpp"
 
 
-namespace YOLO{
+namespace FasterTRT{
 
 // fp16转fp32
 float float16_to_float(float16 value){
@@ -149,7 +149,7 @@ void MixMemory::release_all() {
 //////////////////////////////////////////////////////////////////////
 
 // 默认构造函数1 输出四个通道的维度和数据 保存的设备
-Tensor::Tensor(int n, int c, int h, int w, DataType dtype, shared_ptr<MixMemory> data, int device_id) {
+Tensor::Tensor(int n, int c, int h, int w, DataType dtype, std::shared_ptr<MixMemory> data, int device_id) {
     this->dtype_ = dtype;
     this->device_id_ = get_device(device_id);
     descriptor_string_[0] = 0;
@@ -157,7 +157,7 @@ Tensor::Tensor(int n, int c, int h, int w, DataType dtype, shared_ptr<MixMemory>
     resize(n, c, h, w);
 }
 // 默认构造函数2 输入维度是一个vector
-Tensor::Tensor(const std::vector<int>& dims, DataType dtype, shared_ptr<MixMemory> data, int device_id){
+Tensor::Tensor(const std::vector<int>& dims, DataType dtype,  std::shared_ptr<MixMemory> data, int device_id){
     this->dtype_ = dtype;
     this->device_id_ = get_device(device_id);
     descriptor_string_[0] = 0;
@@ -165,7 +165,7 @@ Tensor::Tensor(const std::vector<int>& dims, DataType dtype, shared_ptr<MixMemor
     resize(dims);
 }
 // 默认构造函数3 
-Tensor::Tensor(int ndims, const int* dims, DataType dtype, shared_ptr<MixMemory> data, int device_id) {
+Tensor::Tensor(int ndims, const int* dims, DataType dtype,  std::shared_ptr<MixMemory> data, int device_id) {
     this->dtype_ = dtype;
     this->device_id_ = get_device(device_id);
     descriptor_string_[0] = 0;
@@ -173,7 +173,7 @@ Tensor::Tensor(int ndims, const int* dims, DataType dtype, shared_ptr<MixMemory>
     resize(ndims, dims);
 }
 // 默认构造函数4 
-Tensor::Tensor(DataType dtype, shared_ptr<MixMemory> data, int device_id){
+Tensor::Tensor(DataType dtype,  std::shared_ptr<MixMemory> data, int device_id){
     shape_string_[0] = 0;
     descriptor_string_[0] = 0;
     this->device_id_ = get_device(device_id);
@@ -210,8 +210,8 @@ int Tensor::numel() const{
 }
 
 // 拷贝当前tensor数据 并返回一个新的tensor
-shared_ptr<Tensor> Tensor::clone() const{
-    auto new_tensor = make_shared<Tensor>(shape_, dtype_);
+ std::shared_ptr<Tensor> Tensor::clone() const{
+    auto new_tensor = std::make_shared<Tensor>(shape_, dtype_);
     if(head_ == DataHead::Init)
         return new_tensor;
     
@@ -281,7 +281,7 @@ int Tensor::offset_array(size_t size, const int* index_array) const{
 
 // 根据给定的shape(n, c, h, w), 去更新 strides_ 和 需要的 memory
 Tensor& Tensor::resize(int ndims, const int* dims) {
-    vector<int> setup_dims(ndims);
+    std::vector<int> setup_dims(ndims);
     for(int i = 0; i < ndims; ++i){
         int dim = dims[i];
         if(dim == -1){
@@ -436,7 +436,7 @@ Tensor& Tensor::set_mat(int n, const cv::Mat& _image) {
         return *this;
     }
 
-    vector<cv::Mat> ms(image.channels());
+    std::vector<cv::Mat> ms(image.channels());
     for (int i = 0; i < ms.size(); ++i) 
         ms[i] = cv::Mat(height, width, CV_32F, cpu<float>(n, i));
 
@@ -566,7 +566,7 @@ Tensor& Tensor::copy_from_cpu(size_t offset, const void* src, size_t num_element
 }
 
 //
-void Tensor::reference_data(const vector<int>& shape, void* cpu_data, size_t cpu_size, void* gpu_data, size_t gpu_size, DataType dtype){
+void Tensor::reference_data(const  std::vector<int>& shape, void* cpu_data, size_t cpu_size, void* gpu_data, size_t gpu_size, DataType dtype){
 
     dtype_ = dtype;
     data_->reference_data(cpu_data, cpu_size, gpu_data, gpu_size);
@@ -612,7 +612,7 @@ bool Tensor::load_from_file(const std::string& file){
 
     int ndims = head[1];
     auto dtype = (DataType)head[2];
-    vector<int> dims(ndims);
+    std::vector<int> dims(ndims);
     fread(dims.data(), 1, ndims * sizeof(dims[0]), f);
     
     this->dtype_ = dtype;
@@ -657,10 +657,10 @@ Tensor& Tensor::adajust_memory_by_update_dims_or_type(){
 
 
 // 设置数据， 构造函数调用
-void Tensor::setup_data(shared_ptr<MixMemory> data){
+void Tensor::setup_data( std::shared_ptr<MixMemory> data){
     data_ = data;
     if(data_ == nullptr){
-        data_ = make_shared<MixMemory>(device_id_);
+        data_ = std::make_shared<MixMemory>(device_id_);
     }else{
         device_id_ = data_->device_id();
     }

@@ -8,7 +8,7 @@
 
 #include "tools.hpp"
 
-namespace YOLO{
+namespace FasterTRT{
 
 typedef struct{unsigned short _;} float16;
 enum class DataType : int {

@@ -6,7 +6,7 @@
 #include <memory>
 #include <condition_variable>
 
-namespace YOLO{
+namespace FasterTRT{
 ///////////////////////////class MonopolyAllocator//////////////////////////////////////
 /* 独占分配器
     通过对tensor做独占管理，具有max_batch * 2个tensor，通过query获取一个tensor

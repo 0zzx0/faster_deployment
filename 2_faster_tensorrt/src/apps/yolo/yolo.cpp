@@ -1,30 +1,11 @@
-#include "yolo.hpp"
+#include "yolo.h"
 
-/*
-    实现 cuda处理加速 多种类的实现
-*/
-
-namespace YOLO{
-
-
-// 返回mode的名字
-const char* mode_string(Mode type) {
-    switch (type) {
-    case Mode::FP32:
-        return "FP32";
-    case Mode::FP16:
-        return "FP16";
-    case Mode::INT8:
-        return "INT8";
-    default:
-        return "UnknowCompileMode";
-    }
-}
+namespace YOLO {
 
 // 返回type的名字
 const char* type_name(YoloType type){
     switch(type){
-    case YoloType::V5: return "YoloV5";
+    // case YoloType::V5: return "YoloV5";
     case YoloType::X: return "YoloX";
     default: return "Unknow";
     }
@@ -77,7 +58,7 @@ YoloTRTInferImpl::~YoloTRTInferImpl(){
 }
 
 // 启动 但不是重写基类的startup 参数不一样 里面会去调用基类
-bool YoloTRTInferImpl::startup(const string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold){
+bool YoloTRTInferImpl::startup(const std::string& file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold){
 
     if(type == YoloType::X){
         normalize_ = Norm::None();
@@ -95,14 +76,14 @@ bool YoloTRTInferImpl::startup(const string& file, YoloType type, int gpuid, int
     nms_threshold_        = nms_threshold;
     type_                 = type;
     batch_size_           = batch_size;
-    return ThreadSafedAsyncInferImpl::startup(make_tuple(file, gpuid));
+    return ThreadSafedAsyncInferImpl::startup(std::make_tuple(file, gpuid));
 }
 
 // 重写基类worker 工作线程
-void YoloTRTInferImpl::worker(promise<bool>& result){
+void YoloTRTInferImpl::worker(std::promise<bool>& result){
 
-    string file = get<0>(start_param_);
-    int gpuid   = get<1>(start_param_);
+    std::string file = std::get<0>(start_param_);
+    int gpuid   = std::get<1>(start_param_);
 
     set_device(gpuid);
     auto engine = load_infer(file, batch_size_);
@@ -116,9 +97,9 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
 
     const int MAX_IMAGE_BBOX  = 1024;
     const int NUM_BOX_ELEMENT = 7;      // left, top, right, bottom, confidence, class, keepflag
-    Tensor affin_matrix_device(DataType::Float);
-    Tensor output_array_device(DataType::Float);
-    Tensor prior_box(DataType::Float);
+    Tensor affin_matrix_device(FasterTRT::DataType::Float);
+    Tensor output_array_device(FasterTRT::DataType::Float);
+    Tensor prior_box(FasterTRT::DataType::Float);
     int max_batch_size = engine->get_max_batch_size();
     auto input         = engine->tensor("images");
     auto output        = engine->tensor("output");
@@ -126,7 +107,7 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
 
     input_width_       = input->size(3);
     input_height_      = input->size(2);
-    tensor_allocator_  = make_shared<MonopolyAllocator<Tensor>>(max_batch_size * 2);
+    tensor_allocator_  = std::make_shared<MonopolyAllocator<Tensor>>(max_batch_size * 2);
     stream_            = engine->get_stream();
     gpu_               = gpuid;
     result.set_value(true); // 初始化完成 返回给startup函数结束
@@ -152,7 +133,7 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
     }
     
 
-    vector<Job> fetch_jobs;
+    std::vector<Job> fetch_jobs;
     while(get_jobs_and_wait(fetch_jobs, max_batch_size)){
 
         int infer_batch_size = fetch_jobs.size();
@@ -193,7 +174,7 @@ void YoloTRTInferImpl::worker(promise<bool>& result){
         output_array_device.to_cpu();
         for(int ibatch = 0; ibatch < infer_batch_size; ++ibatch){
             float* parray = output_array_device.cpu<float>(ibatch);
-            int count     = min(MAX_IMAGE_BBOX, (int)*parray);
+            int count     = std::min(MAX_IMAGE_BBOX, (int)*parray);
             auto& job     = fetch_jobs[ibatch];
             auto& image_based_boxes   = job.output;
             for(int i = 0; i < count; ++i){
@@ -265,7 +246,7 @@ void YoloTRTInferImpl::init_yolov5_prior_box(Tensor& prior_box){
 }
 
 // 预处理
-bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
+bool YoloTRTInferImpl::preprocess(Job& job, const cv::Mat& image){
 
     if(tensor_allocator_ == nullptr){
         INFOE("tensor_allocator_ is nullptr");
@@ -286,11 +267,11 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     auto& tensor = job.mono_tensor->data();
     if(tensor == nullptr){
         // not init
-        tensor = make_shared<Tensor>();
-        tensor->set_workspace(make_shared<MixMemory>());
+        tensor = std::make_shared<Tensor>();
+        tensor->set_workspace(std::make_shared<MixMemory>());
     }
 
-    Size input_size(input_width_, input_height_);
+    cv::Size input_size(input_width_, input_height_);
     job.additional.compute(image.size(), input_size);
     
     tensor->set_stream(stream_pro_);
@@ -307,7 +288,7 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
     float* affine_matrix_host     = (float*)cpu_workspace;
     uint8_t* image_host           = size_matrix + cpu_workspace;
 
-    // speed up
+
     memcpy(image_host, image.data, size_image);
     memcpy(affine_matrix_host, job.additional.d2i, sizeof(job.additional.d2i));
     checkCudaRuntime(cudaMemcpyAsync(image_device, image_host, size_image, cudaMemcpyHostToDevice, stream_pro_));
@@ -330,91 +311,13 @@ bool YoloTRTInferImpl::preprocess(Job& job, const Mat& image){
 }
 
 // 提交<vector>任务
-vector<shared_future<BoxArray>> YoloTRTInferImpl::commits(const vector<Mat>& images){
+std::vector<std::shared_future<BoxArray>> YoloTRTInferImpl::commits(const std::vector<cv::Mat>& images){
     return ThreadSafedAsyncInferImpl::commits(images);
 }
 
 // 提交cv::Mat任务
-std::shared_future<BoxArray> YoloTRTInferImpl::commit(const Mat& image) {
+std::shared_future<BoxArray> YoloTRTInferImpl::commit(const cv::Mat& image) {
     return ThreadSafedAsyncInferImpl::commit(image);
-}
-
-
-
-//////////////////////////////////////////////////////////////////////
-////////////////////// Int8EntropyCalibrator /////////////////////////
-//////////////////////////////////////////////////////////////////////
-Int8EntropyCalibrator::Int8EntropyCalibrator(const vector<string>& imagefiles, nvinfer1::Dims dims, const Int8Process& preprocess) {
-
-    Assert(preprocess != nullptr);
-    this->dims_ = dims;
-    this->allimgs_ = imagefiles;
-    this->preprocess_ = preprocess;
-    this->fromCalibratorData_ = false;
-    files_.resize(dims.d[0]);
-    checkCudaRuntime(cudaStreamCreate(&stream_));
-}
-
-Int8EntropyCalibrator::Int8EntropyCalibrator(const vector<uint8_t>& entropyCalibratorData, nvinfer1::Dims dims, const Int8Process& preprocess) {
-    Assert(preprocess != nullptr);
-
-    this->dims_ = dims;
-    this->entropyCalibratorData_ = entropyCalibratorData;
-    this->preprocess_ = preprocess;
-    this->fromCalibratorData_ = true;
-    files_.resize(dims.d[0]);
-    checkCudaRuntime(cudaStreamCreate(&stream_));
-}
-
-Int8EntropyCalibrator:: ~Int8EntropyCalibrator(){
-    checkCudaRuntime(cudaStreamDestroy(stream_));
-}
-
-int Int8EntropyCalibrator::getBatchSize() const noexcept {
-    return dims_.d[0];
-}
-
-bool Int8EntropyCalibrator::next() {
-    int batch_size = dims_.d[0];
-    if (cursor_ + batch_size > allimgs_.size())
-        return false;
-
-    int old_cursor = cursor_;
-    for(int i = 0; i < batch_size; ++i)
-        files_[i] = allimgs_[cursor_++];
-
-    if (!tensor_){
-        tensor_.reset(new Tensor(dims_.nbDims, dims_.d));
-        tensor_->set_stream(stream_);
-        tensor_->set_workspace(make_shared<MixMemory>());
-    }
-
-    preprocess_(old_cursor, allimgs_.size(), files_, tensor_);
-    return true;
-}
-
-bool Int8EntropyCalibrator::getBatch(void* bindings[], const char* names[], int nbBindings) noexcept {
-    if (!next()) return false;
-    bindings[0] = tensor_->gpu();
-    return true;
-}
-
-const vector<uint8_t>& Int8EntropyCalibrator::getEntropyCalibratorData() {
-    return entropyCalibratorData_;
-}
-
-const void* Int8EntropyCalibrator::readCalibrationCache(size_t& length) noexcept {
-    if (fromCalibratorData_) {
-        length = this->entropyCalibratorData_.size();
-        return this->entropyCalibratorData_.data();
-    }
-
-    length = 0;
-    return nullptr;
-}
-
-void Int8EntropyCalibrator::writeCalibrationCache(const void* cache, size_t length) noexcept {
-    entropyCalibratorData_.assign((uint8_t*)cache, (uint8_t*)cache + length);
 }
 
 
@@ -423,18 +326,18 @@ bool compile(
     Mode mode,
     YoloType type,
     unsigned int max_batch_size,
-    const string& source_onnx_file,
-    const string& save_engine_file,
+    const std::string& source_onnx_file,
+    const std::string& save_engine_file,
     size_t max_workspace_size,
     const std::string& int8_images_folder,
     const std::string& int8_entropy_calibrator_cache_file
 ) {
 
     bool hasEntropyCalibrator = false;
-    vector<uint8_t> entropyCalibratorData;
-    vector<string> entropyCalibratorFiles;
+    std::vector<uint8_t> entropyCalibratorData;
+    std::vector<std::string> entropyCalibratorFiles;
 
-    auto int8process = [=](int current, int count, const vector<string>& files, shared_ptr<Tensor>& tensor){
+    auto int8process = [=](int current, int count, const std::vector<std::string>& files, std::shared_ptr<Tensor>& tensor){
 
         for(int i = 0; i < files.size(); ++i){
 
@@ -491,13 +394,13 @@ bool compile(
     }
 
     INFO("Compile %s %s.", mode_string(mode), source_onnx_file.c_str());
-    shared_ptr<IBuilder> builder(createInferBuilder(gLogger), destroy_nvidia_pointer<IBuilder>);
+    std::shared_ptr<IBuilder> builder(createInferBuilder(gLogger), destroy_nvidia_pointer<IBuilder>);
     if (builder == nullptr) {
         INFOE("Can not create builder.");
         return false;
     }
 
-    shared_ptr<IBuilderConfig> config(builder->createBuilderConfig(), destroy_nvidia_pointer<IBuilderConfig>);
+    std::shared_ptr<IBuilderConfig> config(builder->createBuilderConfig(), destroy_nvidia_pointer<IBuilderConfig>);
     if (mode == Mode::FP16) {
         if (!builder->platformHasFastFp16()) {
             INFOW("Platform not have fast fp16 support");
@@ -511,10 +414,10 @@ bool compile(
         config->setFlag(BuilderFlag::kINT8);
     }
 
-    shared_ptr<INetworkDefinition> network;
-    shared_ptr<nvonnxparser::IParser> onnxParser;
+    std::shared_ptr<INetworkDefinition> network;
+    std::shared_ptr<nvonnxparser::IParser> onnxParser;
     const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-    network = shared_ptr<INetworkDefinition>(builder->createNetworkV2(explicitBatch), destroy_nvidia_pointer<INetworkDefinition>);
+    network = std::shared_ptr<INetworkDefinition>(builder->createNetworkV2(explicitBatch), destroy_nvidia_pointer<INetworkDefinition>);
 
     //from onnx is not markOutput
     onnxParser.reset(nvonnxparser::createParser(*network, gLogger), destroy_nvidia_pointer<nvonnxparser::IParser>);
@@ -531,7 +434,7 @@ bool compile(
     auto inputTensor = network->getInput(0);
     auto inputDims = inputTensor->getDimensions();
 
-    shared_ptr<Int8EntropyCalibrator> int8Calibrator;
+    std::shared_ptr<Int8EntropyCalibrator> int8Calibrator;
     if (mode == Mode::INT8) {
         auto calibratorDims = inputDims;
         calibratorDims.d[0] = max_batch_size;
@@ -551,17 +454,17 @@ bool compile(
         config->setInt8Calibrator(int8Calibrator.get());
     }
 
-    INFO("Input shape is %s", join_dims(vector<int>(inputDims.d, inputDims.d + inputDims.nbDims)).c_str());
+    INFO("Input shape is %s", join_dims(std::vector<int>(inputDims.d, inputDims.d + inputDims.nbDims)).c_str());
     INFO("Set max batch size = %d", max_batch_size);
     INFO("Set max workspace size = %.2f MB", max_workspace_size / 1024.0f / 1024.0f);
 
     int net_num_input = network->getNbInputs();
     INFO("Network has %d inputs:", net_num_input);
-    vector<string> input_names(net_num_input);
+    std::vector<std::string> input_names(net_num_input);
     for(int i = 0; i < net_num_input; ++i){
         auto tensor = network->getInput(i);
         auto dims = tensor->getDimensions();
-        auto dims_str = join_dims(vector<int>(dims.d, dims.d+dims.nbDims));
+        auto dims_str = join_dims(std::vector<int>(dims.d, dims.d+dims.nbDims));
         INFO("      %d.[%s] shape is %s", i, tensor->getName(), dims_str.c_str());
 
         input_names[i] = tensor->getName();
@@ -572,7 +475,7 @@ bool compile(
     for(int i = 0; i < net_num_output; ++i){
         auto tensor = network->getOutput(i);
         auto dims = tensor->getDimensions();
-        auto dims_str = join_dims(vector<int>(dims.d, dims.d+dims.nbDims));
+        auto dims_str = join_dims(std::vector<int>(dims.d, dims.d+dims.nbDims));
         INFO("      %d.[%s] shape is %s", i, tensor->getName(), dims_str.c_str());
     }
 
@@ -594,8 +497,8 @@ bool compile(
     config->addOptimizationProfile(profile);
 
     INFO("Building engine...");
-    auto time_start = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-    shared_ptr<ICudaEngine> engine(builder->buildEngineWithConfig(*network, *config), destroy_nvidia_pointer<ICudaEngine>);
+    auto time_start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::shared_ptr<ICudaEngine> engine(builder->buildEngineWithConfig(*network, *config), destroy_nvidia_pointer<ICudaEngine>);
     if (engine == nullptr) {
         INFOE("engine is nullptr");
         return false;
@@ -613,15 +516,15 @@ bool compile(
         }
     }
 
-    auto time_end = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+    auto time_end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     INFO("Build done %lld ms !", time_end - time_start);
     
     // serialize the engine, then close everything down
-    shared_ptr<IHostMemory> seridata(engine->serialize(), destroy_nvidia_pointer<IHostMemory>);
+    std::shared_ptr<IHostMemory> seridata(engine->serialize(), destroy_nvidia_pointer<IHostMemory>);
     return save_file(save_engine_file, seridata->data(), seridata->size());
 }
 
-void image_to_tensor(const cv::Mat& image, shared_ptr<Tensor>& tensor, YoloType type, int ibatch){
+void image_to_tensor(const cv::Mat& image, std::shared_ptr<Tensor>& tensor, YoloType type, int ibatch){
 
     Norm normalize;
     if(type == YoloType::V5){
@@ -632,7 +535,7 @@ void image_to_tensor(const cv::Mat& image, shared_ptr<Tensor>& tensor, YoloType 
         INFOE("Unsupport type %d", type);
     }
     
-    Size input_size(tensor->size(3), tensor->size(2));
+    cv::Size input_size(tensor->size(3), tensor->size(2));
     AffineMatrix affine;
     affine.compute(image.size(), input_size);
 
@@ -661,48 +564,12 @@ void image_to_tensor(const cv::Mat& image, shared_ptr<Tensor>& tensor, YoloType 
     );
 }
 
-vector<string> glob_image_files(const string& directory){
 
-    /* 检索目录下的所有图像："*.jpg;*.png;*.bmp;*.jpeg;*.tiff" */
-    vector<string> files, output;
-    set<string> pattern_set{"jpg", "png", "bmp", "jpeg", "tiff"};
-
-    if(directory.empty()){
-        INFOE("Glob images from folder failed, folder is empty");
-        return output;
-    }
-
-    try{
-        vector<cv::String> files_;
-        files_.reserve(10000);
-        cv::glob(directory + "/*", files_, true);
-        files.insert(files.end(), files_.begin(), files_.end());
-    }catch(...){
-        INFOE("Glob %s failed", directory.c_str());
-        return output;
-    }
-
-    for(int i = 0; i < files.size(); ++i){
-        auto& file = files[i];
-        int p = file.rfind(".");
-        if(p == -1) continue;
-
-        auto suffix = file.substr(p+1);
-        std::transform(suffix.begin(), suffix.end(), suffix.begin(), [](char c){
-            if(c >= 'A' && c <= 'Z')
-                c -= 'A' + 'a';
-            return c;
-        });
-        if(pattern_set.find(suffix) != pattern_set.end())
-            output.push_back(file);
-    }
-    return output;
-}
 
 
 // 创建推理器
-shared_ptr<Infer> create_infer(const string& engine_file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold){
-    shared_ptr<YoloTRTInferImpl> instance(new YoloTRTInferImpl());
+std::shared_ptr<Infer> create_infer(const std::string& engine_file, YoloType type, int gpuid, int batch_size, float confidence_threshold, float nms_threshold){
+    std::shared_ptr<YoloTRTInferImpl> instance(new YoloTRTInferImpl());
     if(!instance->startup(engine_file, type, gpuid, batch_size, confidence_threshold, nms_threshold)){
         instance.reset();
     }

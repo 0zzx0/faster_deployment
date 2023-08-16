@@ -116,7 +116,7 @@ protected:
     std::string output_name_;
     ncnn::Mat input_;
     ncnn::Mat output_;
-    int ncnn_num_threads_;
+    int ncnn_num_threads_ = 8;
     bool ncnn_use_vulkan_compute_;
 
     // multi threads

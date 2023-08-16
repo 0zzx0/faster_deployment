@@ -52,7 +52,7 @@ public:
     postProcess(postProcessType type, float input_h, float input_w, float conf_thr, float nms_thr);
     ~postProcess() { };
 
-    std::vector<ObjBox> forward(ncnn::Mat &output_);
+    void forward(ncnn::Mat &output_);
     void yolox_generate_grids_and_stride();
     void yolox_decode(ncnn::Mat &output_);
 
@@ -63,11 +63,15 @@ protected:
     float conf_thr_;
     float nms_thr_;
 
-    std::vector<ObjBox> out_boxes;
-    std::vector<ObjBox> nms_boxes;
+    // std::vector<ObjBox> out_boxes;
+    // std::vector<ObjBox> nms_boxes;
 
     const std::vector<int> strides{8, 16, 32};
     std::vector<GridAndStride> grid_strides;
+
+public:
+    std::vector<ObjBox> out_boxes;
+    std::vector<ObjBox> nms_boxes;
 
 };
 

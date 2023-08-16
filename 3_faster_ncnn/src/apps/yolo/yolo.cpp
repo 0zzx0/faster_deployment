@@ -35,8 +35,8 @@ void InferImpl::worker(std::promise<bool> &pro){
         
         input_ = fetch_job.input;
         forward();
-        // output_
-        fetch_job.pro->set_value(postprocess_->forward(output_ ));
+        postprocess_->forward(output_);
+        fetch_job.pro->set_value(postprocess_->nms_boxes);
     }
 
     INFO("推理结束！");

@@ -56,12 +56,11 @@ postProcess::postProcess(postProcessType type, float input_h, float input_w, flo
 
 }
 
-std::vector<ObjBox> postProcess::forward(ncnn::Mat &output_ ){
+void postProcess::forward(ncnn::Mat &output_ ){
     out_boxes.clear();
     nms_boxes.clear();
     yolox_decode(output_);
     nms(out_boxes, nms_boxes, nms_thr_);
-    return nms_boxes;
 }
 
 void postProcess::yolox_generate_grids_and_stride(){

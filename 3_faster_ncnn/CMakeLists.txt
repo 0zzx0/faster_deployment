@@ -9,12 +9,14 @@ find_package(OpenCV REQUIRED)
 find_package(ncnn REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/src)
+
 include_directories(/home/zzx/Github/zzx_yolo/EXTRA_PKG/ncnn/build/install/include/ncnn)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O0 -Wfatal-errors -pthread -w -g")
 
-
-file(GLOB_RECURSE cpp_srcs ${PROJECT_SOURCE_DIR}/src/*.cpp)
-
-
-add_executable(yolox_ncnn ${cpp_srcs})
+add_executable(yolox_ncnn 
+    ${PROJECT_SOURCE_DIR}/src/main.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/common.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/yolo/yolo.cpp
+)
 target_link_libraries(yolox_ncnn ${OpenCV_LIBS} ncnn pthread)

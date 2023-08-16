@@ -7,10 +7,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdarg.h>
+
+namespace FasterNCNN {
+
 /*
 logger
 */
-
 enum class LogLevel : int{
     Debug   = 5,
     Verbose = 4,
@@ -85,3 +87,5 @@ static std::string file_name(const std::string& path, bool include_suffix){
     return path.substr(p, u - p);
 }
 
+
+}

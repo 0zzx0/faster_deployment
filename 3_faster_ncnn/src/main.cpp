@@ -1,26 +1,24 @@
-#include <iostream>
-#include <opencv2/opencv.hpp>
-#include<chrono>
+#include <chrono>
 
-#include "infer.h"
+#include "apps/yolo/yolo.h"
 
 using namespace std;
 
 void t2(){
-    string param_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/model.bin";
-    string model_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/model.param";
+    string param_path = "../model.param";
+    string model_path = "../model.bin";
 
-    auto infer = NCNN_DET::create_infer(param_path, model_path, 0.5, 0.65); 
+    auto infer = YoloNCNN::create_infer(param_path, model_path, 0.5, 0.65); 
 
     if (infer == nullptr){
         printf("Infer is nullptr.\n");
         return ;
     }
     
-    string img_path = "/home/zzx/Github/faster_deployment/3_faster_ncnn/img/000026.jpg";
+    string img_path = "../img/000026.jpg";
     cv::Mat img = cv::imread(img_path);
 
-    queue<std::shared_future<std::vector<NCNN_DET::ObjBox>>> out_queue;
+    queue<std::shared_future<std::vector<YoloNCNN::ObjBox>>> out_queue;
 
     auto start = std::chrono::system_clock::now();
     for(int i=0;i<100;i++){
@@ -62,23 +60,23 @@ void t2(){
 }
 
 void t1(){
-    string param_path = "/home/zzx/Github/zzx_yolo/yolox_infer/4_ncnn/model.param";
-    string model_path = "/home/zzx/Github/zzx_yolo/yolox_infer/4_ncnn/model.bin";
+    string param_path = "../model.param";
+    string model_path = "../model.bin";
 
-    auto infer = NCNN_DET::create_infer(param_path, model_path, 0.5, 0.65); 
+    auto infer = YoloNCNN::create_infer(param_path, model_path, 0.5, 0.65); 
 
     if (infer == nullptr){
         printf("Infer is nullptr.\n");
         return ;
     }
 
-    string img_path = "/home/zzx/Github/zzx_yolo/yolox_infer/imgs/000026.jpg";
+    string img_path = "../img/000026.jpg";
     cv::Mat img = cv::imread(img_path);
 
     auto start = std::chrono::system_clock::now();
     for(int i=0;i<100;i++){
         auto fut = infer->commit(img);     // 将任务提交给推理器（推理器执行commit)
-        vector<NCNN_DET::ObjBox> res = fut.get(); // 等待结果
+        vector<YoloNCNN::ObjBox> res = fut.get(); // 等待结果
     }
     
     auto end = std::chrono::system_clock::now();
@@ -100,7 +98,7 @@ void t1(){
 }
 
 int main(){
-    t1();
+    // t1();
     t2();
 
 }

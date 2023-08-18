@@ -53,6 +53,7 @@ postProcess::postProcess(postProcessType type, float input_h, float input_w, flo
     input_w_ = input_w;
     conf_thr_ = conf_thr;
     nms_thr_ = nms_thr;
+    yolox_generate_grids_and_stride();
 
 }
 

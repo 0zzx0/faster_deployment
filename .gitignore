@@ -11,5 +11,6 @@
 # !**/build/*.so
 
 5_yolov8/
+6_trt_more/
 
 2_faster_tensorrt/src/un_used_code.cpp

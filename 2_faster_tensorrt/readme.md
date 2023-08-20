@@ -183,6 +183,9 @@ while(!out_queue.empty()) {
 }
 ```
 
+目前已经支持了yolox和yolov8，其中yolov8导出的onnx模型需要经过编辑，主要是输出借调增加一个维度调整。可以参考代码`1_learn_trt/trt_plugin/v8onnx_tranpose.py`.
+
+
 ### 2.3 模型测评
 
 使用c++的推理结果来实现coco格式的eval格式，进而便于对比加速前后精度的变化。稍微有点麻烦，整体思想是保存c++的推理结果，然后用python的pycocotools来实现结果的计算。

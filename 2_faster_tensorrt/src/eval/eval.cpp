@@ -8,21 +8,20 @@
 
 using namespace std;
 
-string base_path = "/home/zzx/Experiment/Data/UTDAC2020/val2017/";
+const string base_path = "/home/zzx/Experiment/Data/UTDAC2020/val2017/";
+YOLO::YoloType type = YOLO::YoloType::X;
+const string model_file = "../yolox_b16.engine";
+const int deviceid = 0;
+
+const float confidence_threshold = 0.5f;
+const float nms_threshold = 0.65f;
 
 int main() {
-
     int batch_size = 1;
-    int deviceid = 0;
     YOLO::set_device(deviceid);
-    
-    auto type = YOLO::YoloType::X;
-    const string model_file="../yolox_b16.engine";
-    
-    float confidence_threshold = 0.5f;
-    float nms_threshold = 0.65f;
-    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
 
+    auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold,
+                                   nms_threshold);
 
     ifstream img_id("../src/eval/img_id.txt");
     vector<string> all_id;
@@ -33,8 +32,8 @@ int main() {
         string name;
         img_id >> id;
         img_id >> name;
-        if(id.size()==0) break;
-        
+        if(id.size() == 0) break;
+
         all_id.push_back(id);
         all_img.push_back(name);
         // cout << id << " " << name << endl;
@@ -46,7 +45,7 @@ int main() {
 
     assert(all_id.size() == all_img.size());
 
-    for(int i=0; i<all_id.size(); i++) {
+    for(int i = 0; i < all_id.size(); i++) {
         string cur_img = base_path + all_img[i];
         auto image = cv::imread(cur_img);
         auto objs = yolo->commit(image);

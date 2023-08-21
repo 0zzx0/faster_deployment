@@ -108,7 +108,7 @@ void YoloTRTInferImpl::worker(std::promise<bool>& result) {
 
     engine->print();
 
-    const int MAX_IMAGE_BBOX = 128;
+    const int MAX_IMAGE_BBOX = 1024;
     const int NUM_BOX_ELEMENT = 7;  // left, top, right, bottom, confidence, class, keepflag
     Tensor affin_matrix_device(FasterTRT::DataType::Float);
     Tensor output_array_device(FasterTRT::DataType::Float);

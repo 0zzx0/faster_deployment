@@ -1,6 +1,16 @@
+/**
+ * @file trt_base.hpp
+ * @author 0zzx0
+ * @brief trt base
+ * @version 0.1
+ * @date 2023-6-11 2023-8-21
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #ifndef TRT_BASE_H
 #define TRT_BASE_H
-
 
 #include <NvOnnxParser.h>
 
@@ -8,22 +18,27 @@
 #include "monopoly_accocator.hpp"
 #include "infer_base.hpp"
 
-namespace FasterTRT{
+namespace FasterTRT {
 
 // 推理数据类型
-enum class Mode : int{FP32, FP16, INT8};
+enum class Mode : int { FP32, FP16, INT8 };
 const char* mode_string(Mode type);
 
 ////////////////////量化用的///////////////////////////
-typedef std::function<void(int current, int count, const std::vector<std::string>& files, std::shared_ptr<Tensor>& tensor)> Int8Process;
+typedef std::function<void(int current, int count, const std::vector<std::string>& files,
+                           std::shared_ptr<Tensor>& tensor)>
+    Int8Process;
 
-/* 
-int8 量化 未测试
-*/
-class Int8EntropyCalibrator : public IInt8EntropyCalibrator2{
+/**
+ * @brief int8 量化 未测试
+ *
+ */
+class Int8EntropyCalibrator : public IInt8EntropyCalibrator2 {
 public:
-    Int8EntropyCalibrator(const std::vector<std::string>& imagefiles, nvinfer1::Dims dims, const Int8Process& preprocess);
-    Int8EntropyCalibrator(const std::vector<uint8_t>& entropyCalibratorData, nvinfer1::Dims dims, const Int8Process& preprocess);
+    Int8EntropyCalibrator(const std::vector<std::string>& imagefiles, nvinfer1::Dims dims,
+                          const Int8Process& preprocess);
+    Int8EntropyCalibrator(const std::vector<uint8_t>& entropyCalibratorData, nvinfer1::Dims dims,
+                          const Int8Process& preprocess);
     virtual ~Int8EntropyCalibrator();
 
     int getBatchSize() const noexcept;
@@ -47,11 +62,9 @@ private:
     cudaStream_t stream_ = nullptr;
 };
 
-
-// 检索目录下的所有图像："*.jpg;*.png;*.bmp;*.jpeg;*.tiff" 
+// 检索目录下的所有图像："*.jpg;*.png;*.bmp;*.jpeg;*.tiff"
 std::vector<std::string> glob_image_files(const std::string& directory);
 
-
-}
+}  // namespace FasterTRT
 
 #endif

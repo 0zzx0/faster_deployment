@@ -1,13 +1,11 @@
 #include "infer_base.hpp"
 
-namespace FasterTRT{
+namespace FasterTRT {
 ///////////////////////////////////////////////////////////////////////
 /////////////////////////// TRTInferImpl //////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-TRTInferImpl::~TRTInferImpl(){
-    destroy();
-}
+TRTInferImpl::~TRTInferImpl() { destroy(); }
 
 // 销毁对象(析构默认调用)
 void TRTInferImpl::destroy() {
@@ -24,8 +22,8 @@ void TRTInferImpl::destroy() {
 }
 
 // 打印信息 输入输出信息
-void TRTInferImpl::print(){
-    if(!context_){
+void TRTInferImpl::print() {
+    if(!context_) {
         INFOW("Infer print, nullptr.");
         return;
     }
@@ -33,14 +31,14 @@ void TRTInferImpl::print(){
     INFO("Infer %p detail", this);
     INFO("\tMax Batch Size: %d", this->get_max_batch_size());
     INFO("\tInputs: %d", inputs_.size());
-    for(int i = 0; i < inputs_.size(); ++i){
+    for(int i = 0; i < inputs_.size(); ++i) {
         auto& tensor = inputs_[i];
         auto& name = inputs_name_[i];
         INFO("\t\t%d.%s : shape {%s}", i, name.c_str(), tensor->shape_string());
     }
 
     INFO("\tOutputs: %d", outputs_.size());
-    for(int i = 0; i < outputs_.size(); ++i){
+    for(int i = 0; i < outputs_.size(); ++i) {
         auto& tensor = outputs_[i];
         auto& name = outputs_name_[i];
         INFO("\t\t%d.%s : shape {%s}", i, name.c_str(), tensor->shape_string());
@@ -50,20 +48,20 @@ void TRTInferImpl::print(){
 // 序列化engine
 std::shared_ptr<std::vector<uint8_t>> TRTInferImpl::serial_engine() {
     auto memory = this->context_->engine_->serialize();
-    auto output = std::make_shared<std::vector<uint8_t>>((uint8_t*)memory->data(), (uint8_t*)memory->data()+memory->size());
+    auto output = std::make_shared<std::vector<uint8_t>>((uint8_t*)memory->data(),
+                                                         (uint8_t*)memory->data() + memory->size());
     memory->destroy();
     return output;
 }
 
 // 从内存加载
 bool TRTInferImpl::load_from_memory(const void* pdata, size_t size) {
-    if (pdata == nullptr || size == 0)
-        return false;
+    if(pdata == nullptr || size == 0) return false;
 
     context_.reset(new EngineContext());
 
-    //build model
-    if (!context_->build_model(pdata, size)) {
+    // build model
+    if(!context_->build_model(pdata, size)) {
         context_.reset();
         return false;
     }
@@ -76,15 +74,13 @@ bool TRTInferImpl::load_from_memory(const void* pdata, size_t size) {
 
 // 从文件加载
 bool TRTInferImpl::load(const std::string& file, int batch_size) {
-
     auto data = load_file(file);
-    if (data.empty())
-        return false;
+    if(data.empty()) return false;
 
     context_.reset(new EngineContext());
 
-    //build model
-    if (!context_->build_model(data.data(), data.size())) {
+    // build model
+    if(!context_->build_model(data.data(), data.size())) {
         context_.reset();
         return false;
     }
@@ -104,7 +100,6 @@ size_t TRTInferImpl::get_device_memory_size() {
 
 // 获取输入输出等信息
 void TRTInferImpl::build_engine_input_and_outputs_mapper() {
-        
     EngineContext* context = (EngineContext*)this->context_.get();
     int nbBindings = context->engine_->getNbBindings();
     // int max_batchsize = context->engine_->getMaxBatchSize();
@@ -117,8 +112,7 @@ void TRTInferImpl::build_engine_input_and_outputs_mapper() {
     orderdBlobs_.clear();
     bindingsPtr_.clear();
     blobsNameMapper_.clear();
-    for (int i = 0; i < nbBindings; ++i) {
-
+    for(int i = 0; i < nbBindings; ++i) {
         auto dims = context->engine_->getBindingDimensions(i);
         auto type = context->engine_->getBindingDataType(i);
         const char* bindingName = context->engine_->getBindingName(i);
@@ -126,14 +120,13 @@ void TRTInferImpl::build_engine_input_and_outputs_mapper() {
         auto newTensor = std::make_shared<Tensor>(dims.nbDims, dims.d);
         newTensor->set_stream(this->context_->stream_);
         newTensor->set_workspace(this->workspace_);
-        if (context->engine_->bindingIsInput(i)) {
-            //if is input
+        if(context->engine_->bindingIsInput(i)) {
+            // if is input
             inputs_.push_back(newTensor);
             inputs_name_.push_back(bindingName);
             inputs_map_to_ordered_index_.push_back(orderdBlobs_.size());
-        }
-        else {
-            //if is output
+        } else {
+            // if is output
             outputs_.push_back(newTensor);
             outputs_name_.push_back(bindingName);
             outputs_map_to_ordered_index_.push_back(orderdBlobs_.size());
@@ -145,90 +138,77 @@ void TRTInferImpl::build_engine_input_and_outputs_mapper() {
 }
 
 // 数据和推理引擎设置cuda流
-void TRTInferImpl::set_stream(cudaStream_t stream){
+void TRTInferImpl::set_stream(cudaStream_t stream) {
     this->context_->set_stream(stream);
 
-    for(auto& t : orderdBlobs_)
-        t->set_stream(stream);
+    for(auto& t : orderdBlobs_) t->set_stream(stream);
 }
 
 // 获取当前cuda流
-cudaStream_t TRTInferImpl::get_stream() {
-    return this->context_->stream_;
-}
+cudaStream_t TRTInferImpl::get_stream() { return this->context_->stream_; }
 
 // 获取当前设备
-int TRTInferImpl::device() {
-    return device_;
-}
+int TRTInferImpl::device() { return device_; }
 
 // 等待同步
-void TRTInferImpl::synchronize() {
-    checkCudaRuntime(cudaStreamSynchronize(context_->stream_));
-}
+void TRTInferImpl::synchronize() { checkCudaRuntime(cudaStreamSynchronize(context_->stream_)); }
 
 // 判断是否属于输出
-bool TRTInferImpl::is_output_name(const std::string& name){
+bool TRTInferImpl::is_output_name(const std::string& name) {
     return std::find(outputs_name_.begin(), outputs_name_.end(), name) != outputs_name_.end();
 }
 
 // 判断是否属于输入
-bool TRTInferImpl::is_input_name(const std::string& name){
+bool TRTInferImpl::is_input_name(const std::string& name) {
     return std::find(inputs_name_.begin(), inputs_name_.end(), name) != inputs_name_.end();
 }
 
 // 推理
 void TRTInferImpl::forward(bool sync) {
-
     EngineContext* context = (EngineContext*)context_.get();
     int inputBatchSize = inputs_[0]->size(0);
-    for(int i = 0; i < context->engine_->getNbBindings(); ++i){
+    for(int i = 0; i < context->engine_->getNbBindings(); ++i) {
         auto dims = context->engine_->getBindingDimensions(i);
         auto type = context->engine_->getBindingDataType(i);
         dims.d[0] = inputBatchSize;
-        if(context->engine_->bindingIsInput(i)){
+        if(context->engine_->bindingIsInput(i)) {
             context->context_->setBindingDimensions(i, dims);
         }
     }
 
-    for (int i = 0; i < outputs_.size(); ++i) {
+    for(int i = 0; i < outputs_.size(); ++i) {
         outputs_[i]->resize_single_dim(0, inputBatchSize);
         outputs_[i]->to_gpu(false);
     }
 
-    for (int i = 0; i < orderdBlobs_.size(); ++i)
-        bindingsPtr_[i] = orderdBlobs_[i]->gpu();
+    for(int i = 0; i < orderdBlobs_.size(); ++i) bindingsPtr_[i] = orderdBlobs_[i]->gpu();
 
     void** bindingsptr = bindingsPtr_.data();
-    //bool execute_result = context->context_->enqueue(inputBatchSize, bindingsptr, context->stream_, nullptr);
+    // bool execute_result = context->context_->enqueue(inputBatchSize, bindingsptr,
+    // context->stream_, nullptr);
     bool execute_result = context->context_->enqueueV2(bindingsptr, context->stream_, nullptr);
-    if(!execute_result){
+    if(!execute_result) {
         auto code = cudaGetLastError();
-        INFOF("execute fail, code %d[%s], message %s", code, cudaGetErrorName(code), cudaGetErrorString(code));
+        INFOF("execute fail, code %d[%s], message %s", code, cudaGetErrorName(code),
+              cudaGetErrorString(code));
     }
 
-    if (sync) {
+    if(sync) {
         synchronize();
     }
 }
 
 // 获取workspace_(这是一个内存管理类的指针)
-std::shared_ptr<MixMemory> TRTInferImpl::get_workspace() {
-    return workspace_;
-}
+std::shared_ptr<MixMemory> TRTInferImpl::get_workspace() { return workspace_; }
 
 // 返回输入数量
-int TRTInferImpl::num_input() {
-    return this->inputs_.size();
-}
+int TRTInferImpl::num_input() { return this->inputs_.size(); }
 
 // 返回输出数量
-int TRTInferImpl::num_output() {
-    return this->outputs_.size();
-}
+int TRTInferImpl::num_output() { return this->outputs_.size(); }
 
 // 设置第index的输入
-void TRTInferImpl::set_input (int index, std::shared_ptr<Tensor> tensor){
+void TRTInferImpl::set_input(int index, std::shared_ptr<Tensor> tensor) {
     Assert(index >= 0 && index < inputs_.size());
     this->inputs_[index] = tensor;
 
@@ -237,7 +217,7 @@ void TRTInferImpl::set_input (int index, std::shared_ptr<Tensor> tensor){
 }
 
 // 设置第index的输出
-void TRTInferImpl::set_output(int index, std::shared_ptr<Tensor> tensor){
+void TRTInferImpl::set_output(int index, std::shared_ptr<Tensor> tensor) {
     Assert(index >= 0 && index < outputs_.size());
     this->outputs_[index] = tensor;
 
@@ -252,7 +232,7 @@ std::shared_ptr<Tensor> TRTInferImpl::input(int index) {
 }
 
 // 返回第index输入tensor名字
-std::string TRTInferImpl::get_input_name(int index){
+std::string TRTInferImpl::get_input_name(int index) {
     Assert(index >= 0 && index < inputs_name_.size());
     return inputs_name_[index];
 }
@@ -264,7 +244,7 @@ std::shared_ptr<Tensor> TRTInferImpl::output(int index) {
 }
 
 // 返回第index输出tensor名字
-std::string TRTInferImpl::get_output_name(int index){
+std::string TRTInferImpl::get_output_name(int index) {
     Assert(index >= 0 && index < outputs_name_.size());
     return outputs_name_[index];
 }
@@ -282,20 +262,13 @@ std::shared_ptr<Tensor> TRTInferImpl::tensor(const std::string& name) {
     return orderdBlobs_[blobsNameMapper_[name]];
 }
 
-
-
-
 ///////////////////////////////////////////////////////////////////////
 /////////////////////////加载文件初始化对象 /////////////////////////////
-/////////////////////////////////////////////////////////////////////// 
+///////////////////////////////////////////////////////////////////////
 std::shared_ptr<TRTInferImpl> load_infer(const std::string& file, int batch_size) {
-    
     std::shared_ptr<TRTInferImpl> infer(new TRTInferImpl());
-    if (!infer->load(file, batch_size))
-        infer.reset();
+    if(!infer->load(file, batch_size)) infer.reset();
     return infer;
 }
 
-
-};
-
+};  // namespace FasterTRT

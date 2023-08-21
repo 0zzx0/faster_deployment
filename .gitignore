@@ -1,16 +1,19 @@
 .vscode/
 
+# c++编译
 **/build/*
 
+# 模型权重及转换中间文件 动态链接库文件
 *.engine
 *.onnx
 *.so
 
-3_faster_ncnn/*.bin
-3_faster_ncnn/*.param
-# !**/build/*.so
+*.bin
+*.param
 
+# 备份
+2_faster_tensorrt/src/un_used_code.cpp
+
+# 本地more测试文件夹
 5_yolov8/
 6_trt_more/
-
-2_faster_tensorrt/src/un_used_code.cpp

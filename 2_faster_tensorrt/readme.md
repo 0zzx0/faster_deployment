@@ -323,3 +323,4 @@ shared_ptr<Infer> create_infer(...){
 - [ ] gpu内存异步操作内核进一步融合，使用一个gpu内核实现运算符组合，减少数据传输和内核启动延迟
 - [ ] 一个tensorrt的engine可以创建多个context，实现多线程调用。只占用一个engine显存的大小，同时供多个推理运算
 - [ ] 向量化全局内存访问，提高内存访问效率
+- [ ] transformer系列算法加速支持 by fastertransformers

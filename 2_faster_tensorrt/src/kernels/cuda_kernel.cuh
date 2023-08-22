@@ -95,10 +95,6 @@ static __global__ void yolov8_decode_kernel(float* predict, int num_bboxes, int 
                                             float* invert_affine_matrix, float* parray,
                                             const float* prior_box, int max_objects);
 
-static __global__ void transpose_device_kernel(int batch_size, float* src, int srcWidth,
-                                               int srcHeight, int srcArea, float* dst, int dstWidth,
-                                               int dstHeight, int dstArea);
-
 // yolov8的解码
 void yolov8_decode_kernel_invoker(float* predict, int num_bboxes, int fm_area, int num_classes,
                                   float confidence_threshold, float nms_threshold,

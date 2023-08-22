@@ -23,6 +23,36 @@
 5. 预处理和推理同时进行
 6. 生产者消费者模式，合理好用。 -->
 
+## 当前支持
+
+### faster_tensorrt
+
+#### 目标检测
+
+- [x] yolox
+- [x] yolov8
+- [ ] rtdetr
+
+#### 单目深度估计
+
+- [ ] [lite-mono](https://github.com/noahzn/Lite-Mono)
+https://zhuanlan.zhihu.com/p/614680720
+
+#### 语义分割
+
+### faster_ncnn
+
+#### 目标检测
+- [x] yolox
+- [ ] yolov8
+- [ ] rtdetr
+
+### faster_tensorrt
+
+#### 目标检测
+- [x] yolox
+- [ ] yolov8
+- [ ] rtdetr
 
 ## 问题&分析
 
@@ -50,11 +80,6 @@
 
 具体的实现过程在这里[2_faster_tensorrt readme](./2_faster_tensorrt/readme.md)，有完整的代码解释、模型推理接口、增加模型方法等的说明。
 
-目前faster_tensorrt支持的算法有
-
-- [x] yolox
-- [x] yolov8
-- [ ] 类detr(下一步计划)
 
 ## 总结
 

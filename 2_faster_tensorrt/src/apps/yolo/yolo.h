@@ -12,19 +12,7 @@
 #ifndef YOLO_HPP
 #define YOLO_HPP
 
-#include <future>
-#include <memory>
-#include <opencv2/opencv.hpp>
-
-#include <NvInfer.h>
-#include <NvOnnxParser.h>
-#include <cuda_runtime.h>
-
-#include "../../base/tools.hpp"
-#include "../../base/trt_base.hpp"
-#include "../../base/infer_base.hpp"
-#include "../../base/memory_tensor.hpp"
-#include "../../base/monopoly_accocator.hpp"
+#include "../common.hpp"
 
 namespace YOLO {
 using namespace FasterTRT;
@@ -34,22 +22,6 @@ enum class YoloType : int { V5 = 0, X = 1, V8 = 2 };
 
 // 模型名字
 const char *type_name(YoloType type);
-
-// 推理结果格式
-struct Box {
-    float left, top, right, bottom, confidence;
-    int class_label;
-
-    Box() = default;
-    Box(float left, float top, float right, float bottom, float confidence, int class_label)
-        : left(left),
-          top(top),
-          right(right),
-          bottom(bottom),
-          confidence(confidence),
-          class_label(class_label) {}
-};
-typedef std::vector<Box> BoxArray;
 
 /**
  * @brief Decode配置的实现
@@ -65,30 +37,6 @@ struct DecodeMeta {
     // static DecodeMeta v5_p5_default_meta();
     static DecodeMeta x_default_meta();
     static DecodeMeta v8_default_meta();
-};
-
-// 仿射变换矩阵
-struct AffineMatrix {
-    float i2d[6];  // image to dst(network), 2x3 matrix
-    float d2i[6];  // dst to image, 2x3 matrix
-
-    void compute(const cv::Size &from, const cv::Size &to) {
-        float scale_x = to.width / (float)from.width;
-        float scale_y = to.height / (float)from.height;
-        float scale = std::min(scale_x, scale_y);
-        i2d[0] = scale;
-        i2d[1] = 0;
-        i2d[2] = -scale * from.width * 0.5 + to.width * 0.5 + scale * 0.5 - 0.5;
-        i2d[3] = 0;
-        i2d[4] = scale;
-        i2d[5] = -scale * from.height * 0.5 + to.height * 0.5 + scale * 0.5 - 0.5;
-
-        cv::Mat m2x3_i2d(2, 3, CV_32F, i2d);
-        cv::Mat m2x3_d2i(2, 3, CV_32F, d2i);
-        cv::invertAffineTransform(m2x3_i2d, m2x3_d2i);
-    }
-
-    cv::Mat i2d_mat() { return cv::Mat(2, 3, CV_32F, i2d); }
 };
 
 // 线程安全模板类设置模板类型

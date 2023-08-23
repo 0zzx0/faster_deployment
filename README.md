@@ -45,14 +45,14 @@ https://zhuanlan.zhihu.com/p/614680720
 #### 目标检测
 - [x] yolox
 - [ ] yolov8
-- [ ] rtdetr
 
-### faster_tensorrt
+
+### faster_rknn
 
 #### 目标检测
 - [x] yolox
 - [ ] yolov8
-- [ ] rtdetr
+
 
 ## 问题&分析
 

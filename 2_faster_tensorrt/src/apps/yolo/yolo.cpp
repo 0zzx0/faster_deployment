@@ -64,7 +64,9 @@ DecodeMeta DecodeMeta::v8_default_meta() {
 //////////////////////////////////////////////////////////////////////
 //////////////////////// YoloTRTInferImpl ////////////////////////////
 //////////////////////////////////////////////////////////////////////
-YoloTRTInferImpl::~YoloTRTInferImpl() { stop(); }
+YoloTRTInferImpl::~YoloTRTInferImpl() {
+    stop();
+}
 
 // 启动 但不是重写基类的startup 参数不一样 里面会去调用基类
 bool YoloTRTInferImpl::startup(const std::string& file, YoloType type, int gpuid, int batch_size,

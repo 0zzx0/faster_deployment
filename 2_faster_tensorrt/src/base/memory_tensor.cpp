@@ -3,7 +3,9 @@
 namespace FasterTRT {
 
 // fp16转fp32
-float float16_to_float(float16 value) { return __half2float(*reinterpret_cast<__half*>(&value)); }
+float float16_to_float(float16 value) {
+    return __half2float(*reinterpret_cast<__half*>(&value));
+}
 // fp32转fp16
 float16 float_to_float16(float value) {
     auto val = __float2half(value);
@@ -59,13 +61,17 @@ const char* data_head_string(DataHead dh) {
 //////////////////////////// MixMemory ///////////////////////////////
 //////////////////////////////////////////////////////////////////////
 // 构造函数一 指定设备id
-MixMemory::MixMemory(int device_id) { device_id_ = get_device(device_id); }
+MixMemory::MixMemory(int device_id) {
+    device_id_ = get_device(device_id);
+}
 // 构造函数二 指定cpu gpu尺寸和数据
 MixMemory::MixMemory(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size) {
     reference_data(cpu, cpu_size, gpu, gpu_size);
 }
 // 析构
-MixMemory::~MixMemory() { release_all(); }
+MixMemory::~MixMemory() {
+    release_all();
+}
 
 // 初始化 设置cpu数据和size, gpu数据和size
 void MixMemory::reference_data(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size) {
@@ -188,7 +194,9 @@ Tensor::Tensor(DataType dtype, std::shared_ptr<MixMemory> data, int device_id) {
     setup_data(data);
 }
 // 析构
-Tensor::~Tensor() { release(); }
+Tensor::~Tensor() {
+    release();
+}
 
 // 释放内存 由析构函数调用
 Tensor& Tensor::release() {
@@ -253,7 +261,9 @@ Tensor& Tensor::set_to(float value) {
 }
 
 // 是否是空
-bool Tensor::empty() const { return data_->cpu() == nullptr && data_->gpu() == nullptr; }
+bool Tensor::empty() const {
+    return data_->cpu() == nullptr && data_->gpu() == nullptr;
+}
 
 //
 int Tensor::offset_array(const std::vector<int>& index_array) const {
@@ -303,7 +313,9 @@ Tensor& Tensor::resize(int ndims, const int* dims) {
 }
 
 // resize 输入vector维度
-Tensor& Tensor::resize(const std::vector<int>& dims) { return resize(dims.size(), dims.data()); }
+Tensor& Tensor::resize(const std::vector<int>& dims) {
+    return resize(dims.size(), dims.data());
+}
 
 //
 Tensor& Tensor::resize_single_dim(int idim, int size) {

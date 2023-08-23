@@ -42,9 +42,13 @@ Int8EntropyCalibrator::Int8EntropyCalibrator(const std::vector<uint8_t>& entropy
     checkCudaRuntime(cudaStreamCreate(&stream_));
 }
 
-Int8EntropyCalibrator::~Int8EntropyCalibrator() { checkCudaRuntime(cudaStreamDestroy(stream_)); }
+Int8EntropyCalibrator::~Int8EntropyCalibrator() {
+    checkCudaRuntime(cudaStreamDestroy(stream_));
+}
 
-int Int8EntropyCalibrator::getBatchSize() const noexcept { return dims_.d[0]; }
+int Int8EntropyCalibrator::getBatchSize() const noexcept {
+    return dims_.d[0];
+}
 
 bool Int8EntropyCalibrator::next() {
     int batch_size = dims_.d[0];

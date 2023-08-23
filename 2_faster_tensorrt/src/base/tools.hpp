@@ -138,7 +138,9 @@ static void __log_func(const char* file, int line, LogLevel level, const char* f
     }
 }
 
-static bool exists(const std::string& path) { return access(path.c_str(), R_OK) == 0; }
+static bool exists(const std::string& path) {
+    return access(path.c_str(), R_OK) == 0;
+}
 
 static bool save_file(const std::string& file, const void* data, size_t length) {
     FILE* f = fopen(file.c_str(), "wb");
@@ -209,7 +211,9 @@ static std::vector<uint8_t> load_file(const std::string& file) {
     return data;
 }
 
-inline int upbound(int n, int align = 32) { return (n + align - 1) / align * align; }
+inline int upbound(int n, int align = 32) {
+    return (n + align - 1) / align * align;
+}
 
 template <typename _T>
 static std::string join_dims(const std::vector<_T>& dims) {

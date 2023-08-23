@@ -5,7 +5,9 @@ namespace FasterTRT {
 /////////////////////////// TRTInferImpl //////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-TRTInferImpl::~TRTInferImpl() { destroy(); }
+TRTInferImpl::~TRTInferImpl() {
+    destroy();
+}
 
 // 销毁对象(析构默认调用)
 void TRTInferImpl::destroy() {
@@ -28,20 +30,16 @@ void TRTInferImpl::print() {
         return;
     }
 
-    INFO("Infer %p detail", this);
+    INFO("Infer %p I/O detail", this);
     INFO("\tMax Batch Size: %d", this->get_max_batch_size());
-    INFO("\tInputs: %d", inputs_.size());
+    INFO("\tInputs count: %d", inputs_.size());
     for(int i = 0; i < inputs_.size(); ++i) {
-        auto& tensor = inputs_[i];
-        auto& name = inputs_name_[i];
-        INFO("\t\t%d.%s : shape {%s}", i, name.c_str(), tensor->shape_string());
+        INFO("\t\t%d.%s : shape {%s}", i, inputs_name_[i].c_str(), inputs_[i]->shape_string());
     }
 
-    INFO("\tOutputs: %d", outputs_.size());
+    INFO("\tOutputs count: %d", outputs_.size());
     for(int i = 0; i < outputs_.size(); ++i) {
-        auto& tensor = outputs_[i];
-        auto& name = outputs_name_[i];
-        INFO("\t\t%d.%s : shape {%s}", i, name.c_str(), tensor->shape_string());
+        INFO("\t\t%d.%s : shape {%s}", i, outputs_name_[i].c_str(), outputs_[i]->shape_string());
     }
 }
 
@@ -145,13 +143,19 @@ void TRTInferImpl::set_stream(cudaStream_t stream) {
 }
 
 // 获取当前cuda流
-cudaStream_t TRTInferImpl::get_stream() { return this->context_->stream_; }
+cudaStream_t TRTInferImpl::get_stream() {
+    return this->context_->stream_;
+}
 
 // 获取当前设备
-int TRTInferImpl::device() { return device_; }
+int TRTInferImpl::device() {
+    return device_;
+}
 
 // 等待同步
-void TRTInferImpl::synchronize() { checkCudaRuntime(cudaStreamSynchronize(context_->stream_)); }
+void TRTInferImpl::synchronize() {
+    checkCudaRuntime(cudaStreamSynchronize(context_->stream_));
+}
 
 // 判断是否属于输出
 bool TRTInferImpl::is_output_name(const std::string& name) {
@@ -199,13 +203,19 @@ void TRTInferImpl::forward(bool sync) {
 }
 
 // 获取workspace_(这是一个内存管理类的指针)
-std::shared_ptr<MixMemory> TRTInferImpl::get_workspace() { return workspace_; }
+std::shared_ptr<MixMemory> TRTInferImpl::get_workspace() {
+    return workspace_;
+}
 
 // 返回输入数量
-int TRTInferImpl::num_input() { return this->inputs_.size(); }
+int TRTInferImpl::num_input() {
+    return this->inputs_.size();
+}
 
 // 返回输出数量
-int TRTInferImpl::num_output() { return this->outputs_.size(); }
+int TRTInferImpl::num_output() {
+    return this->outputs_.size();
+}
 
 // 设置第index的输入
 void TRTInferImpl::set_input(int index, std::shared_ptr<Tensor> tensor) {

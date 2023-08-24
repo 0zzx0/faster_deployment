@@ -19,7 +19,7 @@
 
 ## 1. 文件说明
 
-我在大多数地方都已经加了中文注释，应该能够容易看懂。当然注释可能也会有写错或者理解错误啥的，还是需要有自己的思考的，也欢迎一起交流。在`src`目录下一共有五大部分，分别是`apps`,`base`,`eval`,`kernel`,`main.cpp`。
+我在大多数地方都已经加了中文注释，应该能够容易看懂。当然注释可能也会有写错或者理解错误啥的，还是需要有自己的思考的，也欢迎一起交流。在`src`目录下一共有五大部分，分别是`apps`,`base`,`eval`,`kernels`,`onnx_model`,`main.cpp`。
 
 ### 1.1 base
 
@@ -59,11 +59,17 @@
 
 这里是实际模型的实现地方，定义模型的结构，推理过程，预处理和后处理流程等，推荐每个模型新建一个文件夹实现。
 
-1. `yolo/yolo.h`: 定义yolo的推理
-2. `yolo/yolo.cpp`: yolo推理的实现
+1. `common.hpp`: 一些视觉任务中都会用到的功能挡在这里，比如bbox定义、图片仿射变换的计算等
 
+然后就一些具体模型的实现了
+2. `yolo/yolo.h`: 定义yolo的推理
+3. `yolo/yolo.cpp`: yolo推理的实现
 
-### 1.5 main
+### 1.5 onnx_model
+
+有一些模型的onnx文件需要一些操作才能被本仓库正确检测，这个地方存放编辑onnx的python文件。
+
+### 1.6 main
 
 1. `main.cpp`: 主函数,调用和实现功能都在此处，动态的控制队列也是在此处实际推理中实现。
 
@@ -151,7 +157,15 @@ bool compile(
 
 ### 2.2 模型推理
 
-这个项目的一个优点就是接口简单，尤其是推理接口。
+目前已经仓库里支持了
+1. yolox： 基本是官方默认的吧，我把fcous换成了conv
+2. yolov8：yolov8导出的onnx模型需要经过编辑，主要是输出增加一个维度调整，方便和yolox的一起处理。可以参考代码[v8onnx_tranpose.py](./src/onnx_model/v8onnx_tranpose.py)
+3. rtdetr：百度家出的检测器，导出可以参考[rtdetr_sim_export_trt.py](./src/onnx_model/rtdetr_sim_export_trt.py)
+...
+
+
+本仓库就突出一个接口简单。
+
 ```cpp
 // 创建模型
 auto yolo = YOLO::create_infer(model_file, type, deviceid, batch_size, confidence_threshold, nms_threshold);
@@ -182,9 +196,6 @@ while(!out_queue.empty()) {
     out_queue.pop();
 }
 ```
-
-目前已经支持了yolox和yolov8，其中yolov8导出的onnx模型需要经过编辑，主要是输出借调增加一个维度调整。可以参考代码`1_learn_trt/trt_plugin/v8onnx_tranpose.py`.
-
 
 ### 2.3 模型测评
 
@@ -232,11 +243,7 @@ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.558
 
 首先包含相关头文件，并使用命名空间
 ```cpp
-#include "../../base/tools.hpp"
-#include "../../base/memory_tensor.hpp"
-#include "../../base/monopoly_accocator.hpp"
-#include "../../base/infer_base.hpp"
-#include "../../base/trt_base.hpp"
+#include "../common.hpp"    
 using namespace FasterTRT;
 ```
 然后新建一个推理类，并实现相关方法。
@@ -272,7 +279,7 @@ class YoloDETR : public Infer, public ThreadSafedAsyncInferImpl {
 }
 
 // 封装接口，最终暴露给用户的只有commit和commits方法。
-// 让然也可以选择把所有接口都开放，不使用这里初始化就行了。
+// 当然也可以选择把所有接口都开放，不使用这里初始化就行了。
 shared_ptr<Infer> create_infer(...){
     shared_ptr<YoloDETR> instance(new YoloDETR());
     if(!instance->startup(...)){

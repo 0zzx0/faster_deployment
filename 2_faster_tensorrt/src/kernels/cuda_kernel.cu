@@ -37,7 +37,9 @@ Norm Norm::alpha_beta(float alpha, float beta, ChannelType channel_type) {
     return out;
 }
 
-Norm Norm::None() { return Norm(); }
+Norm Norm::None() {
+    return Norm();
+}
 
 // 仿射变换
 // static __device__ inline void affine_project(float* matrix, float x, float y, float* ox, float*
@@ -45,8 +47,7 @@ Norm Norm::None() { return Norm(); }
 //     *ox = matrix[0] * x + matrix[1];
 //     *oy = matrix[0] * y + matrix[2];
 // }
-static __device__ inline void affine_project(float* matrix, float x, float y, float* ox,
-                                             float* oy) {
+static __device__ void affine_project(float* matrix, float x, float y, float* ox, float* oy) {
     *ox = matrix[0] * x + matrix[1] * y + matrix[2];
     *oy = matrix[3] * x + matrix[4] * y + matrix[5];
 }
@@ -239,6 +240,66 @@ void yolov8_decode_kernel_invoker(float* predict, int num_bboxes, int fm_area, i
     block = block_dims(max_objects);
     checkCudaKernel(
         fast_nms_kernel<<<grid, block, 0, stream>>>(parray, max_objects, nms_threshold));
+}
+
+static __global__ void rtdetr_decode_kernel(float* predict, int num_bboxes, int fm_area,
+                                            int num_classes, float confidence_threshold,
+                                            float* invert_affine_matrix, float* parray,
+                                            int max_objects, int input_size) {
+    int position = blockDim.x * blockIdx.x + threadIdx.x;
+    if(position >= num_bboxes) return;
+
+    float* pitem = predict + position * fm_area;
+
+    // 找到置信度最高的class
+    float confidence = pitem[4];
+
+    int label = 0;
+    for(int i = 1; i < num_classes; ++i) {
+        float class_confidence = pitem[i + 4];
+        if(class_confidence > confidence) {
+            confidence = class_confidence;
+            label = i;
+        }
+    }
+
+    if(confidence < confidence_threshold) return;
+
+    int index = atomicAdd(parray, 1);
+    if(index >= max_objects) return;
+
+    float predict_cx = pitem[0];
+    float predict_cy = pitem[1];
+    float predict_w = pitem[2];
+    float predict_h = pitem[3];
+
+
+    float left = (predict_cx - predict_w * 0.5f) * input_size;
+    float top = (predict_cy - predict_h * 0.5f) * input_size;
+    float right = (predict_cx + predict_w * 0.5f) * input_size;
+    float bottom = (predict_cy + predict_h * 0.5f) * input_size;
+    affine_project(invert_affine_matrix, left, top, &left, &top);
+    affine_project(invert_affine_matrix, right, bottom, &right, &bottom);
+
+    float* pout_item = parray + 1 + index * NUM_BOX_ELEMENT;
+    *pout_item++ = left;
+    *pout_item++ = top;
+    *pout_item++ = right;
+    *pout_item++ = bottom;
+    *pout_item++ = confidence;
+    *pout_item++ = label;
+    *pout_item++ = 1;  // 1 = keep, 0 = ignore
+}
+
+// rtdetr的解码
+void rtdetr_decode_kernel_invoker(float* predict, int num_bboxes, int fm_area, int num_classes,
+                                  float confidence_threshold, float* invert_affine_matrix,
+                                  float* parray, int max_objects, int input_size, cudaStream_t stream) {
+    auto grid = grid_dims(num_bboxes);
+    auto block = block_dims(num_bboxes);
+    checkCudaKernel(rtdetr_decode_kernel<<<grid, block, 0, stream>>>(
+        predict, num_bboxes, fm_area, num_classes, confidence_threshold, invert_affine_matrix,
+        parray, max_objects, input_size));
 }
 
 // same to opencv

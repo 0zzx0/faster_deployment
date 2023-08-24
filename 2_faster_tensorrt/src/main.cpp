@@ -1,4 +1,5 @@
 #include "./apps/yolo/yolo.h"
+#include "./apps/rtdetr/rtdetr.h"
 
 using namespace std;
 
@@ -328,11 +329,64 @@ void test_for_v8() {
     printBox(boxes_array);
 }
 
+// batch1 推理
+void test_for_rtdetr() {
+    printf("========================= test_for_rtdetr ===============================\n");
+    printf("TRTVersion: %s\n", RTDETR::trt_version());
+
+    RTDETR::set_device(deviceid);
+    const string model_file1 =
+        "/home/zzx/Experiment/PaddleDetection/0zzx/new/rtdetr_r18vd_6x_coco.trt";
+    auto rtdetr = RTDETR::create_infer(model_file1, deviceid, batch_size, 0.5f);
+    if(rtdetr == nullptr) {
+        printf("rtdetr is nullptr\n");
+        return;
+    }
+
+    auto image = cv::imread("/home/zzx/Experiment/PaddleDetection/demo/000000014439.jpg");
+    auto boxes_array = rtdetr->commit(image).get();
+    printBox(boxes_array);
+    // cout << boxes_array.size() << endl;
+
+    // warmup
+    for(int i = 0; i < 500; ++i) {
+        auto boxes_array = rtdetr->commit(image);
+        boxes_array.get();
+    }
+    int ntest = 2000;
+    queue<shared_future<RTDETR::BoxArray>> out_queue;
+    auto start_time = std::chrono::system_clock::now();
+    for(int i = 0; i < ntest; i++) {
+        auto objs = rtdetr->commit(image);
+        out_queue.emplace(objs);
+        if(out_queue.size() <= 1) {
+            continue;
+        }
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+    while(!out_queue.empty()) {
+        auto res = out_queue.front().get();
+        out_queue.pop();
+    }
+
+    // auto start_time = std::chrono::system_clock::now();
+    // for(int i = 0; i < ntest; i++) {
+    //     auto objs = rtdetr->commit(image).get();
+    // }
+    auto end_time = std::chrono::system_clock::now();
+    float inference_average_time =
+        chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count() / (ntest * 1.0);
+    printf("[zzx] average: %.2f ms / image, FPS: %.2f\n", inference_average_time,
+           1000 / inference_average_time);
+}
+
 int main() {
     // test_for_nsys();
     // test_batch_1_img();
     // test_batch_1_img_queue(2);
     // test_batch_1_img_thread();
-    test_for_v8();
+    // test_for_v8();
+    test_for_rtdetr();
     return 0;
 }

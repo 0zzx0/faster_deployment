@@ -37,6 +37,7 @@ add_executable(yolo
     ${PROJECT_SOURCE_DIR}/src/base/memory_tensor.cpp
     ${PROJECT_SOURCE_DIR}/src/base/trt_base.cpp
     ${PROJECT_SOURCE_DIR}/src/apps/yolo/yolo.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/rtdetr/rtdetr.cpp
 )
 target_link_libraries(yolo cuda_kernels)
 target_link_libraries(yolo nvinfer nvinfer_plugin nvonnxparser)

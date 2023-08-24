@@ -35,9 +35,13 @@ static __inline__ __device__ int resize_cast(int value) {
 }
 
 // sigmoid 和 逆sigmoid 具体是否使用看模型里面输出前有没有sigmoid吧
-static __host__ inline float desigmoid(float y) { return -log(1.0f / y - 1.0f); }
+static __host__ inline float desigmoid(float y) {
+    return -log(1.0f / y - 1.0f);
+}
 
-static __device__ inline float sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
+static __device__ inline float sigmoid(float x) {
+    return 1.0f / (1.0f + exp(-x));
+}
 
 static dim3 grid_dims(int numJobs);
 static dim3 block_dims(int numJobs);
@@ -100,6 +104,17 @@ void yolov8_decode_kernel_invoker(float* predict, int num_bboxes, int fm_area, i
                                   float confidence_threshold, float nms_threshold,
                                   float* invert_affine_matrix, float* parray,
                                   const float* prior_box, int max_objects, cudaStream_t stream);
+
+// rtdetr的解码kernel
+static __global__ void rtdetr_decode_kernel(float* predict, int num_bboxes, int fm_area,
+                                            int num_classes, float confidence_threshold,
+                                            float* invert_affine_matrix, float* parray,
+                                            int max_objects, int input_size);
+
+// rtdetr的解码
+void rtdetr_decode_kernel_invoker(float* predict, int num_bboxes, int fm_area, int num_classes,
+                                  float confidence_threshold, float* invert_affine_matrix,
+                                  float* parray, int max_objects, int input_size, cudaStream_t stream);
 
 /**
  * @brief 通过仿射变换完成双线性插值resize并且归一化的kernel

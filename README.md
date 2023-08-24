@@ -31,7 +31,7 @@
 
 - [x] yolox
 - [x] yolov8
-- [ ] rtdetr
+- [x] rtdetr
 
 #### 单目深度估计
 

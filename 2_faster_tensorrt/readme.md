@@ -4,7 +4,7 @@
 
 使用之前你应该已经了解trt的构建和推理流程，所以此处不再涉及基础使用。你应该修改的最少有
 ```txt
-1. CMakeLists.txt中的cuda、cudnn、trnsorrt环境路径
+1. CMakeLists.txt中的cuda、cudnn、tensorrt环境路径
 2. main.cpp中的测试推理图片/视频的路径、trt二进制文件路径，推理类别等
 3. 预处理和后处理也要根据实际使用模型修改，本文代码以yolox为例
 ```
